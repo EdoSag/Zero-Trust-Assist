@@ -1,0 +1,29 @@
+name: zerotrust_assist
+description: "Zero-Trust Assist: a private AI assistant that runs on your phone."
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.10.7
+  flutter: ">=3.38.6"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Runs the models: llama.cpp for GGUF files and LiteRT-LM for .litertlm
+  # files, behind one Dart API. Pinned exactly: it downloads prebuilt native
+  # libraries at build time, so a version change is a supply-chain change and
+  # gets its own PR. The app only talks to it through lib/engine/.
+  llamadart: 0.20.7
+  # Where the models and the saved test results live.
+  path_provider: ^2.1.5
+  # Hands a results file to the system share sheet.
+  share_plus: ^13.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
