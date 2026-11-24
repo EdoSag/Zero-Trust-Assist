@@ -340,6 +340,7 @@ class LabRunner {
       promptId: prompt.id,
       category: prompt.category,
       language: prompt.language,
+      answerLanguage: prompt.answerLanguage,
       answer: text,
       firstTextMs: firstTextMs,
       totalMs: totalMs,

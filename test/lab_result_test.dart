@@ -10,6 +10,7 @@ import 'package:zerotrust_assist/lab/result_store.dart';
 PromptResult _result(
   String id, {
   String language = 'en',
+  String? answerLanguage,
   LabCategory category = LabCategory.summarize,
   double? read,
   double? write,
@@ -21,6 +22,7 @@ PromptResult _result(
     promptId: id,
     category: category,
     language: language,
+    answerLanguage: answerLanguage ?? language,
     answer: 'answer $id',
     firstTextMs: firstTextMs,
     totalMs: 2000,
@@ -90,6 +92,16 @@ void main() {
     expect(summary, contains('Hebrew 21 tok/s, English 26 tok/s'));
     expect(summary, contains('Quick add: 1 of 2'));
     expect(summary, contains('6 requests in 4 min 30 s, 1 failed'));
+  });
+
+  test('a translation counts under the language it was written in', () {
+    final run = _run([
+      _result('he', language: 'he', write: 20),
+      _result('he-to-en', language: 'he', answerLanguage: 'en', write: 30),
+      _result('en-to-he', language: 'en', answerLanguage: 'he', write: 18),
+    ]);
+    expect(run.medianWriteSpeed(language: 'he'), 19);
+    expect(run.medianWriteSpeed(language: 'en'), 30);
   });
 
   test('the long speed requests do not count in the wait for first text', () {

@@ -25,6 +25,21 @@ void main() {
     }
   });
 
+  test('only translations answer in another language', () {
+    for (final prompt in labPrompts) {
+      if (prompt.category == LabCategory.translate) {
+        expect(
+          prompt.answerLanguage,
+          isNot(prompt.language),
+          reason: prompt.id,
+        );
+        expect(prompt.id, contains('-${prompt.answerLanguage}-'));
+      } else {
+        expect(prompt.answerLanguage, prompt.language, reason: prompt.id);
+      }
+    }
+  });
+
   test('Hebrew is at least half of the short requests', () {
     final short = labPrompts.where((p) => p.category != LabCategory.speed);
     final hebrew = short.where((p) => p.language != 'en').length;

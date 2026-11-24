@@ -25,6 +25,7 @@ class PromptResult {
     required this.promptId,
     required this.category,
     required this.language,
+    required this.answerLanguage,
     required this.answer,
     required this.firstTextMs,
     required this.totalMs,
@@ -41,7 +42,12 @@ class PromptResult {
 
   final String promptId;
   final LabCategory category;
+
+  /// The language of the request's text.
   final String language;
+
+  /// The language the answer is written in (differs for translations).
+  final String answerLanguage;
   final String answer;
 
   /// Stopwatch time until the first text of the answer showed up. This is the
@@ -78,6 +84,7 @@ class PromptResult {
     'prompt_id': promptId,
     'category': category.name,
     'language': language,
+    'answer_language': answerLanguage,
     'answer': answer,
     'first_text_ms': firstTextMs,
     'total_ms': totalMs,
@@ -161,10 +168,13 @@ class LabRun {
   double? get medianReadSpeed =>
       median(_answered.map((result) => result.readTokensPerSecond));
 
-  /// Median writing speed over all answers, or over one [language].
+  /// Median writing speed over all answers, or over the answers written in
+  /// one [language]. A translation counts under the language it produced.
   double? medianWriteSpeed({String? language}) => median(
     _answered
-        .where((result) => language == null || result.language == language)
+        .where(
+          (result) => language == null || result.answerLanguage == language,
+        )
         .map((result) => result.writeTokensPerSecond),
   );
 

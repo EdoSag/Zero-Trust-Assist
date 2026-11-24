@@ -31,11 +31,12 @@ class LabPrompt {
     required this.category,
     required this.language,
     required this.text,
+    String? answerLanguage,
     this.maxTokens = 256,
     this.expectedDate,
     this.expectedTime,
     this.inQuickSet = false,
-  });
+  }) : answerLanguage = answerLanguage ?? language;
 
   /// Stable name, used to line up answers from different runs.
   final String id;
@@ -43,6 +44,10 @@ class LabPrompt {
 
   /// `he`, `en` or `mixed`.
   final String language;
+
+  /// The language the answer is written in: the same as [language], except
+  /// for translations. Writing speed is grouped by this one.
+  final String answerLanguage;
 
   /// What the model is sent as the user's message.
   final String text;
@@ -288,6 +293,7 @@ The team have finish the report and send it to the manger last friday, however t
   LabPrompt(
     id: 'tr-he-en-1',
     category: LabCategory.translate,
+    answerLanguage: 'en',
     language: 'he',
     inQuickSet: true,
     text: '''
@@ -298,6 +304,7 @@ The team have finish the report and send it to the manger last friday, however t
   LabPrompt(
     id: 'tr-he-en-2',
     category: LabCategory.translate,
+    answerLanguage: 'en',
     language: 'he',
     text: '''
 תרגם לאנגלית:
@@ -307,6 +314,7 @@ The team have finish the report and send it to the manger last friday, however t
   LabPrompt(
     id: 'tr-en-he-1',
     category: LabCategory.translate,
+    answerLanguage: 'he',
     language: 'en',
     inQuickSet: true,
     text: '''
@@ -317,6 +325,7 @@ Your appointment is confirmed for Monday at 3:30 PM. Please arrive ten minutes e
   LabPrompt(
     id: 'tr-en-he-2',
     category: LabCategory.translate,
+    answerLanguage: 'he',
     language: 'en',
     text: '''
 Translate to Hebrew:
@@ -326,6 +335,7 @@ We are sorry, but the item you ordered is out of stock. You can wait about two w
   LabPrompt(
     id: 'tr-en-he-3',
     category: LabCategory.translate,
+    answerLanguage: 'he',
     language: 'en',
     text: '''
 Translate to Hebrew:

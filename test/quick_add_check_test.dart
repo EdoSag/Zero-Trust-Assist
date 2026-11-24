@@ -46,6 +46,17 @@ void main() {
     expect(check!.passed, isTrue);
   });
 
+  test('a time with anything after it is not the expected time', () {
+    for (final time in ['09:00 PM', '09:00:30', '09:00 or so', '09:000']) {
+      final check = checkQuickAdd(
+        _timed,
+        '{"date":"2026-11-25","time":"$time"}',
+      );
+      expect(check!.passed, isFalse, reason: time);
+      expect(check.note, contains('time $time, expected 09:00'));
+    }
+  });
+
   test('a wrong date fails and says why', () {
     final check = checkQuickAdd(_timed, '{"date":"2026-11-24","time":"09:00"}');
     expect(check!.passed, isFalse);

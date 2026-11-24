@@ -49,11 +49,13 @@ QuickAddCheck? checkQuickAdd(LabPrompt prompt, String answer) {
 }
 
 /// `9:00` and `09:00:00` both mean `09:00`; a missing time is `none`.
+/// Anything else (`09:00 PM`, `09:00:30`, `around 9`) is returned as written,
+/// so it never matches an expected time by accident.
 String _normalizeTime(Object? value) {
   if (value == null) return 'none';
   final text = value.toString().trim();
   if (text.isEmpty || text.toLowerCase() == 'null') return 'none';
-  final match = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(text);
+  final match = RegExp(r'^(\d{1,2}):(\d{2})(?::00)?$').firstMatch(text);
   if (match == null) return text;
   return '${match.group(1)!.padLeft(2, '0')}:${match.group(2)}';
 }
