@@ -86,7 +86,7 @@ void main() {
     expect(run.quickAddTotal, 2);
 
     final summary = run.summaryText();
-    expect(summary, contains('Gemma 4 E2B on LiteRT-LM'));
+    expect(summary, contains('Gemma 4 E2B (small) on LiteRT-LM'));
     expect(summary, contains('running on CPU'));
     expect(summary, contains('Reads 290 tok/s, writes 22 tok/s'));
     expect(summary, contains('Hebrew 21 tok/s, English 26 tok/s'));
@@ -111,6 +111,27 @@ void main() {
       _result('b', firstTextMs: 600),
     ]);
     expect(run.medianFirstTextMs, 500);
+  });
+
+  test('says how many threads were asked for, and how long until ready', () {
+    final run = LabRun(
+      appVersion: '0.1.0',
+      engineVersion: 'fake 1.0',
+      model: labModels.first,
+      requestedDevice: 'cpu',
+      contextSize: 4096,
+      threads: 6,
+      startedAt: DateTime.utc(2026, 11, 24, 18, 5, 9),
+      finishedAt: DateTime.utc(2026, 11, 24, 18, 6),
+      loadMs: 128,
+      warmUpMs: 5552,
+      results: const [],
+    );
+    expect(run.readyMs, 5680);
+    expect(run.summaryText(), contains('asked for CPU with 6 threads'));
+    expect(run.summaryText(), contains('Ready 5.7 s after start'));
+    expect(run.fileName, endsWith('-gemma-4-e2b-litert-cpu-6t.json'));
+    expect(run.toJson()['threads'], 6);
   });
 
   test('a stopped run says so', () {

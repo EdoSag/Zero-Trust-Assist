@@ -162,6 +162,7 @@ class LabRunner {
     required AssistDevice device,
     required List<LabPrompt> prompts,
     int contextSize = 4096,
+    int threads = 0,
     void Function(LabProgress progress)? onProgress,
     void Function(String answerSoFar)? onText,
   }) async {
@@ -206,7 +207,12 @@ class LabRunner {
       onProgress?.call(const LabProgress.loading());
       final loadWatch = Stopwatch()..start();
       try {
-        await engine.load(modelPath, device: device, contextSize: contextSize);
+        await engine.load(
+          modelPath,
+          device: device,
+          contextSize: contextSize,
+          threads: threads,
+        );
         loadMs = loadWatch.elapsedMilliseconds;
         backendName = await engine.backendName();
       } on Object catch (error) {
@@ -214,8 +220,6 @@ class LabRunner {
       }
 
       if (loadError == null) {
-        deviceAfterLoad = await readTracked();
-
         final warmUpWatch = Stopwatch()..start();
         try {
           await engine.generate(const [
@@ -225,6 +229,9 @@ class LabRunner {
         } on Object catch (error) {
           loadError = 'The first answer failed: $error';
         }
+        // Read only now: some runtimes return from load at once and bring
+        // the model into memory on the first answer.
+        deviceAfterLoad = await readTracked();
       }
 
       if (loadError == null) {
@@ -262,6 +269,7 @@ class LabRunner {
       requestedDevice: device.name,
       backendName: backendName,
       contextSize: contextSize,
+      threads: threads,
       startedAt: startedAt,
       finishedAt: _now(),
       loadMs: loadMs,

@@ -108,6 +108,7 @@ class LabRun {
     required this.model,
     required this.requestedDevice,
     required this.contextSize,
+    this.threads = 0,
     required this.startedAt,
     required this.finishedAt,
     required this.results,
@@ -135,10 +136,14 @@ class LabRun {
   /// What the runtime says it is running on.
   final String? backendName;
   final int contextSize;
+
+  /// Processor cores asked for; 0 means the runtime chose.
+  final int threads;
   final DateTime startedAt;
   final DateTime finishedAt;
 
-  /// Time to load the model file into memory.
+  /// Time the load call took. Some runtimes return at once and do the real
+  /// loading during the first answer, so [readyMs] is the honest number.
   final int? loadMs;
 
   /// Why the model did not load. When set there are no [results].
@@ -194,7 +199,16 @@ class LabRun {
   int get quickAddPassed =>
       results.where((result) => result.checkPassed == true).length;
 
-  /// Memory the app gained by loading the model.
+  /// From tapping start to a model that has answered once: load plus the
+  /// first tiny answer.
+  int? get readyMs {
+    final load = loadMs;
+    final warmUp = warmUpMs;
+    if (load == null || warmUp == null) return null;
+    return load + warmUp;
+  }
+
+  /// Memory the app gained by loading the model and answering once.
   int? get loadMemoryBytes {
     final before = deviceAtStart?.appMemoryBytes;
     final after = deviceAfterLoad?.appMemoryBytes;
@@ -214,7 +228,8 @@ class LabRun {
         .substring(0, 19)
         .replaceAll(':', '')
         .replaceAll('-', '');
-    return 'zt-assist-$stamp-${model.id}-$requestedDevice.json';
+    final cores = threads == 0 ? '' : '-${threads}t';
+    return 'zt-assist-$stamp-${model.id}-$requestedDevice$cores.json';
   }
 
   /// The run in a few lines, for pasting into a chat.
@@ -230,6 +245,7 @@ class LabRun {
     lines.add(
       'Model: ${model.title} on ${model.runtime.label}, '
       'asked for ${requestedDevice.toUpperCase()}'
+      '${threads == 0 ? '' : ' with $threads threads'}'
       '${backendName == null ? '' : ', running on $backendName'}',
     );
     if (loadError != null) {
@@ -237,9 +253,8 @@ class LabRun {
       return lines.join('\n');
     }
     lines.add(
-      'Load ${formatSeconds(loadMs)}, first answer after load '
-      '${formatSeconds(warmUpMs)}, wait before a short answer starts '
-      '${formatSeconds(medianFirstTextMs?.round())}',
+      'Ready ${formatSeconds(readyMs)} after start, wait before a short '
+      'answer starts ${formatSeconds(medianFirstTextMs?.round())}',
     );
     final hebrew = medianWriteSpeed(language: 'he');
     final english = medianWriteSpeed(language: 'en');
@@ -294,12 +309,14 @@ class LabRun {
     'requested_device': requestedDevice,
     'backend': backendName,
     'context_size': contextSize,
+    'threads': threads,
     'started_at': startedAt.toUtc().toIso8601String(),
     'finished_at': finishedAt.toUtc().toIso8601String(),
     'cancelled': cancelled,
     'load_ms': loadMs,
     if (loadError != null) 'load_error': loadError,
     'warm_up_ms': warmUpMs,
+    'ready_ms': readyMs,
     'device_at_start': deviceAtStart?.toJson(),
     'device_after_load': deviceAfterLoad?.toJson(),
     'device_at_end': deviceAtEnd?.toJson(),

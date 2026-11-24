@@ -531,6 +531,11 @@ Question: Is a cracked screen covered, and what do I need to bring to make a cla
   ),
 ];
 
+/// The two long requests alone: under a minute, for comparing settings.
+List<LabPrompt> get labSpeedPrompts => labPrompts
+    .where((prompt) => prompt.category == LabCategory.speed)
+    .toList(growable: false);
+
 /// The requests of the short test: both speed requests and one or two from
 /// each kind of job.
 List<LabPrompt> get labQuickPrompts =>

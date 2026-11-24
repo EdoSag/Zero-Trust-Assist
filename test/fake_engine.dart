@@ -30,6 +30,7 @@ class FakeEngine implements AssistEngine {
 
   final List<List<AssistMessage>> requests = [];
   AssistDevice? loadedDevice;
+  int? loadedThreads;
   bool disposed = false;
   bool _cancelled = false;
 
@@ -38,10 +39,12 @@ class FakeEngine implements AssistEngine {
     String path, {
     AssistDevice device = AssistDevice.cpu,
     int contextSize = 4096,
+    int threads = 0,
   }) async {
     final error = loadError;
     if (error != null) throw error;
     loadedDevice = device;
+    loadedThreads = threads;
   }
 
   @override

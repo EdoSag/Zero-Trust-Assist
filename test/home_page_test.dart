@@ -92,11 +92,22 @@ void main() {
     await tester.tap(find.text('Run test'));
     await tester.pumpAndSettle();
 
+    for (final label in [
+      'Speed',
+      'Quick',
+      'Full',
+      'Auto',
+      '2',
+      '4',
+      '6',
+      '8',
+    ]) {
+      expect(find.text(label), findsOneWidget, reason: label);
+    }
     expect(
-      find.text('Quick, ${labQuickPrompts.length} requests'),
+      find.textContaining('Quick: ${labQuickPrompts.length} requests'),
       findsOneWidget,
     );
-    expect(find.text('Full, ${labPrompts.length} requests'), findsOneWidget);
     expect(find.text('CPU'), findsOneWidget);
     expect(find.text('GPU'), findsOneWidget);
     expect(find.text('Start'), findsOneWidget);

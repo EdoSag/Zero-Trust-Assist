@@ -24,6 +24,7 @@ class RunPage extends StatefulWidget {
     required this.modelPath,
     required this.device,
     required this.prompts,
+    this.threads = 0,
     required this.results,
     this.deviceInfo = const DeviceInfo(),
     this.createEngine = LlamadartEngine.new,
@@ -33,6 +34,9 @@ class RunPage extends StatefulWidget {
   final String modelPath;
   final AssistDevice device;
   final List<LabPrompt> prompts;
+
+  /// Processor cores to use; 0 lets the engine choose.
+  final int threads;
   final ResultStore results;
   final DeviceInfo deviceInfo;
 
@@ -47,7 +51,7 @@ class _RunPageState extends State<RunPage> {
   late final LabRunner _runner = LabRunner(
     createEngine: widget.createEngine,
     readDevice: widget.deviceInfo.snapshot,
-    appVersion: appVersion,
+    appVersion: appVersionLabel,
     engineVersion: engineVersion,
   );
 
@@ -79,6 +83,7 @@ class _RunPageState extends State<RunPage> {
       modelPath: widget.modelPath,
       device: widget.device,
       prompts: widget.prompts,
+      threads: widget.threads,
       onProgress: (progress) {
         _pendingAnswer = '';
         if (mounted) setState(() => _progress = progress);

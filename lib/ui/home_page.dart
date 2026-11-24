@@ -68,7 +68,8 @@ class _HomePageState extends State<HomePage> {
           model: model,
           modelPath: path,
           device: options.device,
-          prompts: options.full ? labPrompts : labQuickPrompts,
+          prompts: options.size.prompts,
+          threads: options.threads,
           results: widget.results,
           deviceInfo: widget.deviceInfo,
         ),
@@ -211,7 +212,7 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           Text(
-            'Test build $appVersion. It measures how well AI models run on '
+            'Test build $appVersionLabel. It measures how well AI models run on '
             'this phone. The models run on the phone itself: nothing you type '
             'is sent anywhere. The only network use is downloading the model '
             'files.',
@@ -279,13 +280,36 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+/// How much of the test to run.
+enum RunSize {
+  speed('Speed'),
+  quick('Quick'),
+  full('Full');
+
+  const RunSize(this.label);
+
+  final String label;
+
+  List<LabPrompt> get prompts => switch (this) {
+    RunSize.speed => labSpeedPrompts,
+    RunSize.quick => labQuickPrompts,
+    RunSize.full => labPrompts,
+  };
+}
+
 /// What the user picked before a run.
 class RunOptions {
-  const RunOptions({required this.full, required this.device});
+  const RunOptions({
+    required this.size,
+    required this.device,
+    required this.threads,
+  });
 
-  /// The full set of requests, or the short one.
-  final bool full;
+  final RunSize size;
   final AssistDevice device;
+
+  /// Processor cores to use; 0 lets the engine choose.
+  final int threads;
 }
 
 class _RunOptionsSheet extends StatefulWidget {
@@ -296,8 +320,9 @@ class _RunOptionsSheet extends StatefulWidget {
 }
 
 class _RunOptionsSheetState extends State<_RunOptionsSheet> {
-  bool _full = false;
+  RunSize _size = RunSize.quick;
   AssistDevice _device = AssistDevice.cpu;
+  int _threads = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -311,23 +336,27 @@ class _RunOptionsSheetState extends State<_RunOptionsSheet> {
           children: [
             Text('Run test', style: theme.textTheme.titleLarge),
             const SizedBox(height: 16),
-            SegmentedButton<bool>(
+            SegmentedButton<RunSize>(
+              showSelectedIcon: false,
               segments: [
-                ButtonSegment(
-                  value: false,
-                  label: Text('Quick, ${labQuickPrompts.length} requests'),
-                ),
-                ButtonSegment(
-                  value: true,
-                  label: Text('Full, ${labPrompts.length} requests'),
-                ),
+                for (final size in RunSize.values)
+                  ButtonSegment(value: size, label: Text(size.label)),
               ],
-              selected: {_full},
+              selected: {_size},
               onSelectionChanged: (value) =>
-                  setState(() => _full = value.first),
+                  setState(() => _size = value.first),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 4),
+            Text(
+              'Speed: ${labSpeedPrompts.length} long requests, under a '
+              'minute, for comparing settings. Quick: '
+              '${labQuickPrompts.length} requests. Full: '
+              '${labPrompts.length} requests.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
             SegmentedButton<AssistDevice>(
+              showSelectedIcon: false,
               segments: const [
                 ButtonSegment(value: AssistDevice.cpu, label: Text('CPU')),
                 ButtonSegment(value: AssistDevice.gpu, label: Text('GPU')),
@@ -336,19 +365,50 @@ class _RunOptionsSheetState extends State<_RunOptionsSheet> {
               onSelectionChanged: (value) =>
                   setState(() => _device = value.first),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 4),
             Text(
-              'Start with Quick on CPU. On GrapheneOS the GPU run is expected '
-              'to fail; that is a useful result too. Keep the app open and '
-              'the phone unplugged while it runs, so heat and battery are '
-              'measured honestly.',
+              'On GrapheneOS the GPU run is expected to fail; that is a '
+              'useful result too.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            Text('Processor threads', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 4),
+            SegmentedButton<int>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 0, label: Text('Auto')),
+                ButtonSegment(value: 2, label: Text('2')),
+                ButtonSegment(value: 4, label: Text('4')),
+                ButtonSegment(value: 6, label: Text('6')),
+                ButtonSegment(value: 8, label: Text('8')),
+              ],
+              selected: {_threads},
+              onSelectionChanged: _device == AssistDevice.gpu
+                  ? null
+                  : (value) => setState(() => _threads = value.first),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Auto lets the engine choose. More threads is not always '
+              'faster: a phone has a few fast cores and a few slow ones.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Keep the app open and the phone unplugged while it runs, so '
+              'heat and battery are measured honestly.',
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: () => Navigator.of(
-                context,
-              ).pop(RunOptions(full: _full, device: _device)),
+              onPressed: () => Navigator.of(context).pop(
+                RunOptions(
+                  size: _size,
+                  device: _device,
+                  threads: _device == AssistDevice.gpu ? 0 : _threads,
+                ),
+              ),
               child: const Text('Start'),
             ),
           ],

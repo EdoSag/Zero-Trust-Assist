@@ -117,7 +117,8 @@ jobs:
           # 64-bit ARM only: the model runtimes are published for arm64 (every
           # phone with enough memory for a model) and for x64 emulators, not
           # for 32-bit phones, and an APK without them could not run a model.
-          flutter build apk --release --target-platform android-arm64 --build-number="$BUILD"
+          # ZT_BUILD puts the build number into the app and its results files.
+          flutter build apk --release --target-platform android-arm64 --build-number="$BUILD" --dart-define=ZT_BUILD="$BUILD"
           APK="$APP_SLUG-$VERSION-build$BUILD.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "$APK"
           ls -lh "$APK"

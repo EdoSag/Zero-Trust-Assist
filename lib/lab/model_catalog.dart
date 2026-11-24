@@ -51,7 +51,7 @@ class LabModel {
 const List<LabModel> labModels = [
   LabModel(
     id: 'gemma-4-e2b-litert',
-    title: 'Gemma 4 E2B',
+    title: 'Gemma 4 E2B (small)',
     note: 'The planned default model.',
     runtime: LabRuntime.liteRtLm,
     repoId: 'litert-community/gemma-4-E2B-it-litert-lm',
@@ -62,7 +62,7 @@ const List<LabModel> labModels = [
   ),
   LabModel(
     id: 'gemma-4-e4b-litert',
-    title: 'Gemma 4 E4B',
+    title: 'Gemma 4 E4B (large)',
     note: 'The larger option for better answers. Slower and needs more memory.',
     runtime: LabRuntime.liteRtLm,
     repoId: 'litert-community/gemma-4-E4B-it-litert-lm',
@@ -73,7 +73,7 @@ const List<LabModel> labModels = [
   ),
   LabModel(
     id: 'dictalm-3-1.7b-gguf',
-    title: 'DictaLM 3.0 1.7B',
+    title: 'DictaLM 3.0 1.7B (Hebrew)',
     note: 'The Hebrew-tuned backup, in a community 4-bit conversion.',
     runtime: LabRuntime.llamaCpp,
     repoId: 'Ibrerhim/DictaLM-3.0-1.7B-Instruct-GGUF',
@@ -84,7 +84,7 @@ const List<LabModel> labModels = [
   ),
   LabModel(
     id: 'gemma-4-e2b-gguf',
-    title: 'Gemma 4 E2B on llama.cpp',
+    title: 'Gemma 4 E2B (small), llama.cpp',
     note: 'The same model on the other engine, to compare the two engines.',
     runtime: LabRuntime.llamaCpp,
     repoId: 'unsloth/gemma-4-E2B-it-GGUF',

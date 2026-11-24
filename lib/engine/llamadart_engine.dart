@@ -15,11 +15,14 @@ class LlamadartEngine implements AssistEngine {
     String path, {
     AssistDevice device = AssistDevice.cpu,
     int contextSize = 4096,
+    int threads = 0,
   }) {
     return _engine.setModel(
       LlamaModel(ModelSource.path(path)),
       params: ModelParams(
         contextSize: contextSize,
+        numberOfThreads: threads,
+        numberOfThreadsBatch: threads,
         device: switch (device) {
           AssistDevice.cpu => ComputeDevice.cpu,
           AssistDevice.gpu => ComputeDevice.gpu,

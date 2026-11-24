@@ -59,6 +59,10 @@ void main() {
     expect(others.every((p) => p.expectedDate == null), isTrue);
   });
 
+  test('the speed set is the two long requests', () {
+    expect(labSpeedPrompts.map((p) => p.id), ['speed-en', 'speed-he']);
+  });
+
   test('the quick set has both speed requests and every kind of job', () {
     final quick = labQuickPrompts;
     expect(quick.length, lessThan(15));

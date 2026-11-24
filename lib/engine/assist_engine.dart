@@ -93,11 +93,13 @@ class AssistChunk {
 /// A loaded model that answers requests, one at a time.
 abstract class AssistEngine {
   /// Loads the model file at [path]. Throws when the file or the [device]
-  /// cannot be used.
+  /// cannot be used. [threads] is how many processor cores to use; 0 lets
+  /// the runtime choose.
   Future<void> load(
     String path, {
     AssistDevice device = AssistDevice.cpu,
     int contextSize = 4096,
+    int threads = 0,
   });
 
   /// What is actually running the model, in the runtime's own words (for

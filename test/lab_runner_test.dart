@@ -41,6 +41,7 @@ Future<LabRun> _run(
   LabRunner runner, {
   List<LabPrompt>? prompts,
   AssistDevice device = AssistDevice.cpu,
+  int threads = 0,
   void Function(LabProgress progress)? onProgress,
   void Function(String text)? onText,
 }) {
@@ -49,6 +50,7 @@ Future<LabRun> _run(
     modelPath: '/models/test.litertlm',
     device: device,
     prompts: prompts ?? labQuickPrompts,
+    threads: threads,
     onProgress: onProgress,
     onText: onText,
   );
@@ -99,7 +101,19 @@ void main() {
         device: AssistDevice.gpu,
       );
       expect(engine.loadedDevice, AssistDevice.gpu);
+      expect(engine.loadedThreads, 0);
       expect(run.requestedDevice, 'gpu');
+    });
+
+    test('passes the thread count to the engine and records it', () async {
+      final engine = FakeEngine();
+      final run = await _run(
+        _runner(engine),
+        prompts: [labPrompts.first],
+        threads: 6,
+      );
+      expect(engine.loadedThreads, 6);
+      expect(run.threads, 6);
     });
 
     test('a model that does not load gives a run with the reason', () async {
