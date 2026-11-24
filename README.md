@@ -45,6 +45,11 @@ It can:
 The full test, the other models and the GPU run follow the same steps. On
 GrapheneOS the GPU run is expected to fail; that is recorded as a result.
 
+Keep the test on screen while it runs. Android moves an app that is off
+screen to the slow processor cores, and the model then writes at about a
+third of its speed. Answers written that way are marked in the results file
+and left out of the speeds.
+
 ## Code
 
 - `lib/engine/` is the only place that touches a model runtime. The rest of

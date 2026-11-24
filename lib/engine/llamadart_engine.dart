@@ -2,6 +2,27 @@ import 'package:llamadart/llamadart.dart';
 
 import 'assist_engine.dart';
 
+/// The load settings for the model file at [path].
+///
+/// LiteRT-LM refuses any setting that only llama.cpp understands and fails
+/// the load, so the thread count for batches goes to `.gguf` files alone.
+/// LiteRT-LM takes the plain thread count, and only on the processor.
+ModelParams modelParamsFor(
+  String path, {
+  required AssistDevice device,
+  required int contextSize,
+  required int threads,
+}) {
+  final liteRtLm = path.toLowerCase().endsWith('.litertlm');
+  final onProcessor = device == AssistDevice.cpu;
+  return ModelParams(
+    contextSize: contextSize,
+    numberOfThreads: liteRtLm && !onProcessor ? 0 : threads,
+    numberOfThreadsBatch: liteRtLm ? 0 : threads,
+    device: onProcessor ? ComputeDevice.cpu : ComputeDevice.gpu,
+  );
+}
+
 /// [AssistEngine] on the llamadart package: llama.cpp for `.gguf` files and
 /// LiteRT-LM for `.litertlm` files. The package picks the runtime from the
 /// file type and runs it off the UI thread.
@@ -19,14 +40,11 @@ class LlamadartEngine implements AssistEngine {
   }) {
     return _engine.setModel(
       LlamaModel(ModelSource.path(path)),
-      params: ModelParams(
+      params: modelParamsFor(
+        path,
+        device: device,
         contextSize: contextSize,
-        numberOfThreads: threads,
-        numberOfThreadsBatch: threads,
-        device: switch (device) {
-          AssistDevice.cpu => ComputeDevice.cpu,
-          AssistDevice.gpu => ComputeDevice.gpu,
-        },
+        threads: threads,
       ),
     );
   }

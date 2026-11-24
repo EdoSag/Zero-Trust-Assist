@@ -38,6 +38,7 @@ class PromptResult {
     this.checkPassed,
     this.checkNote,
     this.error,
+    this.appInBackground = false,
   });
 
   final String promptId;
@@ -80,6 +81,11 @@ class PromptResult {
   /// What went wrong, when the request failed.
   final String? error;
 
+  /// Whether the app left the screen while this answer was written. Android
+  /// then moves the app to the slow processor cores, so the speeds of such
+  /// an answer say nothing about the model.
+  final bool appInBackground;
+
   Map<String, Object?> toJson() => {
     'prompt_id': promptId,
     'category': category.name,
@@ -97,6 +103,7 @@ class PromptResult {
     if (checkPassed != null) 'check_passed': checkPassed,
     if (checkNote != null) 'check_note': checkNote,
     if (error != null) 'error': error,
+    if (appInBackground) 'app_in_background': true,
   };
 }
 
@@ -169,14 +176,23 @@ class LabRun {
   Iterable<PromptResult> get _answered =>
       results.where((result) => result.error == null);
 
+  /// The answers whose speeds count: written with the app on screen.
+  Iterable<PromptResult> get _measured =>
+      _answered.where((result) => !result.appInBackground);
+
+  /// Answers written while the app was off screen. Their speeds are left out
+  /// of the medians.
+  int get backgroundCount =>
+      _answered.where((result) => result.appInBackground).length;
+
   /// Median reading speed over the requests long enough to measure it.
   double? get medianReadSpeed =>
-      median(_answered.map((result) => result.readTokensPerSecond));
+      median(_measured.map((result) => result.readTokensPerSecond));
 
   /// Median writing speed over all answers, or over the answers written in
   /// one [language]. A translation counts under the language it produced.
   double? medianWriteSpeed({String? language}) => median(
-    _answered
+    _measured
         .where(
           (result) => language == null || result.answerLanguage == language,
         )
@@ -186,7 +202,7 @@ class LabRun {
   /// Median wait until the first text appeared, for the short requests (the
   /// two long speed requests would skew it).
   double? get medianFirstTextMs => median(
-    _answered
+    _measured
         .where((result) => result.category != LabCategory.speed)
         .map((result) => result.firstTextMs?.toDouble()),
   );
@@ -263,6 +279,13 @@ class LabRun {
       '${formatSpeed(medianWriteSpeed())} '
       '(Hebrew ${formatSpeed(hebrew)}, English ${formatSpeed(english)})',
     );
+    if (backgroundCount > 0) {
+      lines.add(
+        '$backgroundCount of ${results.length} answers were written with the '
+        'app off screen, where Android slows it down. They are left out of '
+        'the speeds above',
+      );
+    }
     final gained = loadMemoryBytes;
     final peak = peakAppMemoryBytes;
     lines.add(
@@ -339,6 +362,7 @@ class LabRun {
       'quick_add_passed': quickAddPassed,
       'quick_add_total': quickAddTotal,
       'failed': failedCount,
+      'in_background': backgroundCount,
       'text': summaryText(),
     },
     'results': [for (final result in results) result.toJson()],

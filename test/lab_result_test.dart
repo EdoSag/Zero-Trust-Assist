@@ -17,6 +17,7 @@ PromptResult _result(
   int? firstTextMs = 500,
   bool? check,
   String? error,
+  bool appInBackground = false,
 }) {
   return PromptResult(
     promptId: id,
@@ -31,6 +32,7 @@ PromptResult _result(
     speedSource: SpeedSource.runtimeCounters,
     checkPassed: check,
     error: error,
+    appInBackground: appInBackground,
   );
 }
 
@@ -132,6 +134,48 @@ void main() {
     expect(run.summaryText(), contains('Ready 5.7 s after start'));
     expect(run.fileName, endsWith('-gemma-4-e2b-litert-cpu-6t.json'));
     expect(run.toJson()['threads'], 6);
+  });
+
+  test('answers written off screen stay out of the speeds', () {
+    // The numbers of the run from 24 November: four answers were written at
+    // a third of the speed while the app was off screen.
+    final run = _run([
+      _result('a', language: 'he', read: 205, write: 17),
+      _result(
+        'b',
+        language: 'he',
+        read: 90,
+        write: 6,
+        firstTextMs: 2500,
+        appInBackground: true,
+      ),
+      _result(
+        'c',
+        language: 'he',
+        read: 57,
+        write: 6,
+        firstTextMs: 3700,
+        appInBackground: true,
+      ),
+      _result('d', language: 'he', read: 240, write: 17),
+    ]);
+    expect(run.backgroundCount, 2);
+    expect(run.medianWriteSpeed(), 17);
+    expect(run.medianWriteSpeed(language: 'he'), 17);
+    expect(run.medianReadSpeed, 222.5);
+    expect(run.medianFirstTextMs, 500);
+    expect(
+      run.summaryText(),
+      contains('2 of 4 answers were written with the app off screen'),
+    );
+    final summary = run.toJson()['summary']! as Map<String, Object?>;
+    expect(summary['in_background'], 2);
+  });
+
+  test('a run that stayed on screen says nothing about it', () {
+    final run = _run([_result('a', read: 200, write: 17)]);
+    expect(run.backgroundCount, 0);
+    expect(run.summaryText(), isNot(contains('off screen')));
   });
 
   test('a stopped run says so', () {

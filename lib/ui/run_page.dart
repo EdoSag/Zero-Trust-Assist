@@ -53,7 +53,18 @@ class _RunPageState extends State<RunPage> {
     readDevice: widget.deviceInfo.snapshot,
     appVersion: appVersionLabel,
     engineVersion: engineVersion,
+    inForeground: _onScreen,
   );
+
+  /// Whether the app is on screen. Losing focus alone (the notification
+  /// shade, a split screen) still counts as on screen: Android only slows
+  /// the app down once it is hidden.
+  static bool _onScreen() => switch (WidgetsBinding.instance.lifecycleState) {
+    AppLifecycleState.hidden ||
+    AppLifecycleState.paused ||
+    AppLifecycleState.detached => false,
+    _ => true,
+  };
 
   LabProgress _progress = const LabProgress.loading();
   String _liveAnswer = '';
@@ -166,7 +177,13 @@ class _RunPageState extends State<RunPage> {
               child: AutoDirectionText(_liveAnswer),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          Text(
+            'Keep this screen open until the test ends. Android slows the '
+            'model down a lot when the app is not on screen.',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
           OutlinedButton(
             onPressed: _stopping ? null : _stop,
             child: Text(
@@ -258,7 +275,8 @@ class _ResultTile extends StatelessWidget {
               ? 'Failed'
               : 'Writes ${formatSpeed(result.writeTokensPerSecond)}, '
                     '${formatSeconds(result.totalMs)}'
-                    '${check == null ? '' : (check ? ', correct' : ', wrong')}',
+                    '${check == null ? '' : (check ? ', correct' : ', wrong')}'
+                    '${result.appInBackground ? ', app was off screen' : ''}',
         ),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,

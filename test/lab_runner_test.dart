@@ -28,12 +28,14 @@ DeviceSnapshot _device({int memory = 1000, int thermal = 0, int battery = 80}) {
 LabRunner _runner(
   FakeEngine engine, {
   Future<DeviceSnapshot?> Function()? readDevice,
+  bool Function()? inForeground,
 }) {
   return LabRunner(
     createEngine: () => engine,
     readDevice: readDevice ?? () async => _device(),
     appVersion: '0.1.0',
     engineVersion: 'fake 1.0',
+    inForeground: inForeground,
   );
 }
 
@@ -243,6 +245,43 @@ void main() {
       expect(result.writeTokensPerSecond, 25);
       expect(result.promptTokens, 600);
       expect(result.answerTokens, 100);
+    });
+
+    test('marks the answers written while the app was off screen', () async {
+      // The app leaves the screen in the middle of the second answer and
+      // comes back before the third.
+      var onScreen = true;
+      late final FakeEngine engine;
+      engine = FakeEngine(
+        onPiece: (_) {
+          // Requests: warm-up, then one per prompt.
+          if (engine.requests.length == 3) onScreen = false;
+        },
+      );
+      final runner = _runner(engine, inForeground: () => onScreen);
+      final run = await _run(
+        runner,
+        prompts: labQuickPrompts.take(3).toList(),
+        onProgress: (progress) {
+          if (progress.done == 2) onScreen = true;
+        },
+      );
+      expect(run.results.map((result) => result.appInBackground), [
+        false,
+        true,
+        false,
+      ]);
+      expect(run.backgroundCount, 1);
+      expect(run.results[1].toJson()['app_in_background'], true);
+      expect(run.results[0].toJson().containsKey('app_in_background'), false);
+    });
+
+    test('an app that is always on screen marks nothing', () async {
+      final run = await _run(
+        _runner(FakeEngine()),
+        prompts: labQuickPrompts.take(2).toList(),
+      );
+      expect(run.backgroundCount, 0);
     });
   });
 

@@ -130,6 +130,7 @@ class LabRunner {
     required this.readDevice,
     required this.appVersion,
     required this.engineVersion,
+    this.inForeground,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
@@ -140,6 +141,11 @@ class LabRunner {
   final Future<DeviceSnapshot?> Function() readDevice;
   final String appVersion;
   final String engineVersion;
+
+  /// Whether the app is on screen right now. Android moves an app that is
+  /// off screen to the slow processor cores, so answers written then are
+  /// marked and kept out of the speeds. Null means always on screen.
+  final bool Function()? inForeground;
   final DateTime Function() _now;
 
   /// After this many failed requests in a row the run stops: the model is
@@ -296,6 +302,7 @@ class LabRunner {
     int? firstTextMs;
     AssistUsage? usage;
     String? error;
+    var offScreen = !(inForeground?.call() ?? true);
     try {
       final pieces = engine.generate([
         const AssistMessage.system(labSystemPrompt),
@@ -303,6 +310,9 @@ class LabRunner {
       ], maxTokens: prompt.maxTokens);
       await for (final piece in pieces) {
         usage = piece.usage ?? usage;
+        // Pieces arrive many times a second, so checking on each one catches
+        // any time the app spent off screen.
+        if (!offScreen && inForeground?.call() == false) offScreen = true;
         if (piece.text.isEmpty) continue;
         firstTextMs ??= watch.elapsedMilliseconds;
         answer.write(piece.text);
@@ -361,6 +371,7 @@ class LabRunner {
       checkPassed: check?.passed,
       checkNote: check?.note,
       error: error,
+      appInBackground: offScreen,
     );
   }
 }
