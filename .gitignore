@@ -49,3 +49,6 @@ app.*.map.json
 
 # Local signing details.
 /android/key.properties
+
+# Supabase client settings; CI writes its own.
+.env

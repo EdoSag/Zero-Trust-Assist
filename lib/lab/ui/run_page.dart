@@ -5,16 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../app_info.dart';
-import '../engine/assist_engine.dart';
-import '../engine/llamadart_engine.dart';
-import '../lab/device_info.dart';
-import '../lab/lab_result.dart';
-import '../lab/lab_runner.dart';
-import '../lab/model_catalog.dart';
-import '../lab/prompts.dart';
-import '../lab/result_store.dart';
-import 'text_direction.dart';
+import '../../app_info.dart';
+import '../../engine/assist_engine.dart';
+import '../../engine/llamadart_engine.dart';
+import '../device_info.dart';
+import '../lab_result.dart';
+import '../lab_runner.dart';
+import '../model_catalog.dart';
+import '../prompts.dart';
+import '../result_store.dart';
+import '../../ui/text_direction.dart';
 
 /// Runs the test for one model and shows the result when it is done.
 class RunPage extends StatefulWidget {
@@ -28,6 +28,8 @@ class RunPage extends StatefulWidget {
     required this.results,
     this.deviceInfo = const DeviceInfo(),
     this.createEngine = LlamadartEngine.new,
+    this.onActivity,
+    this.activityEvery = const Duration(seconds: 10),
   });
 
   final LabModel model;
@@ -42,6 +44,14 @@ class RunPage extends StatefulWidget {
 
   /// Tests pass a fake engine here.
   final AssistEngine Function() createEngine;
+
+  /// Called every few seconds while the test runs. The app counts it as
+  /// use, so a long test with nobody touching the screen does not lock the
+  /// app and lose its measurements.
+  final VoidCallback? onActivity;
+
+  /// How often [onActivity] is called.
+  final Duration activityEvery;
 
   @override
   State<RunPage> createState() => _RunPageState();
@@ -70,6 +80,7 @@ class _RunPageState extends State<RunPage> {
   String _liveAnswer = '';
   String _pendingAnswer = '';
   Timer? _flush;
+  Timer? _activity;
   LabRun? _run;
   File? _file;
   bool _stopping = false;
@@ -84,6 +95,10 @@ class _RunPageState extends State<RunPage> {
       if (_pendingAnswer == _liveAnswer || !mounted) return;
       setState(() => _liveAnswer = _pendingAnswer);
     });
+    _activity = Timer.periodic(
+      widget.activityEvery,
+      (_) => widget.onActivity?.call(),
+    );
     _start();
   }
 
@@ -103,6 +118,7 @@ class _RunPageState extends State<RunPage> {
     );
     await widget.deviceInfo.keepAwake(false);
     _flush?.cancel();
+    _activity?.cancel();
     File? file;
     try {
       file = await widget.results.save(run);
@@ -125,6 +141,7 @@ class _RunPageState extends State<RunPage> {
   @override
   void dispose() {
     _flush?.cancel();
+    _activity?.cancel();
     _runner.cancel();
     unawaited(widget.deviceInfo.keepAwake(false));
     super.dispose();

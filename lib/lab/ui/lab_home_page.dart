@@ -2,36 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../app_info.dart';
-import '../engine/assist_engine.dart';
-import '../lab/device_info.dart';
-import '../lab/lab_result.dart';
-import '../lab/model_catalog.dart';
-import '../lab/model_store.dart';
-import '../lab/prompts.dart';
-import '../lab/result_store.dart';
-import 'chat_page.dart';
+import '../../app_info.dart';
+import '../../engine/assist_engine.dart';
+import '../device_info.dart';
+import '../lab_result.dart';
+import '../model_catalog.dart';
+import '../model_store.dart';
+import '../prompts.dart';
+import '../result_store.dart';
+import 'lab_chat_page.dart';
 import 'run_page.dart';
 
 /// The test bench: the phone's state, the models to download, and the runs
 /// already made.
-class HomePage extends StatefulWidget {
-  const HomePage({
+class LabHomePage extends StatefulWidget {
+  const LabHomePage({
     super.key,
     required this.models,
     required this.results,
     this.deviceInfo = const DeviceInfo(),
+    this.onActivity,
   });
 
   final ModelStore models;
   final ResultStore results;
   final DeviceInfo deviceInfo;
 
+  /// Passed on to a running test; see [RunPage.onActivity].
+  final VoidCallback? onActivity;
+
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<LabHomePage> createState() => _LabHomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _LabHomePageState extends State<LabHomePage> {
   DeviceSnapshot? _device;
   List<SavedRun> _runs = const [];
 
@@ -72,6 +76,7 @@ class _HomePageState extends State<HomePage> {
           threads: options.threads,
           results: widget.results,
           deviceInfo: widget.deviceInfo,
+          onActivity: widget.onActivity,
         ),
       ),
     );
@@ -81,7 +86,7 @@ class _HomePageState extends State<HomePage> {
   Future<void> _openChat(LabModel model, String path) async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => ChatPage(model: model, modelPath: path),
+        builder: (context) => LabChatPage(model: model, modelPath: path),
       ),
     );
     await _reload();

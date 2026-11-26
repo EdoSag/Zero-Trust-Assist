@@ -47,6 +47,25 @@ jobs:
           flutter-version: 3.47.9
           cache: true
 
+      - name: Write .env when it is not committed
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -f .env ]; then
+            echo "Using the .env committed in the repository."
+          elif [ -n "$ENV_FILE" ]; then
+            printf '%s\n' "$ENV_FILE" > .env
+            echo "Wrote .env from the ENV_FILE secret."
+          else
+            # Public client values (the Supabase URL and publishable key ship
+            # inside every APK anyway). Set an ENV_FILE secret to override.
+            cat > .env <<'ENVEOF'
+          SUPABASE_URL=https://ohgxpnchqmisvktqjmcx.supabase.co
+          SUPABASE_ANON_KEY=sb_publishable_C1geAnwr0LZSxfQKRg21YA_G-OXHYky
+          ENVEOF
+            echo "Wrote .env with the shared public Supabase values."
+          fi
+
       - name: Restore the release keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -102,6 +121,18 @@ jobs:
 
       - run: flutter pub get
 
+      - name: Check the shared core's rules
+        # The suite's full release checks (Zero-Trust-Core,
+        # packages/zt_release_checks) do not know the `assist` app id yet;
+        # they come with the suite entry. Until then, the one rule that has
+        # locked users out before: cryptography_flutter breaks the core's
+        # key derivation, so it must never be in the build.
+        run: |
+          if grep -q 'cryptography_flutter' pubspec.lock; then
+            echo "::error::cryptography_flutter is in pubspec.lock. It breaks sign-in; remove it."
+            exit 1
+          fi
+
       - name: Analyze and test
         run: |
           flutter analyze
@@ -118,7 +149,7 @@ jobs:
           # phone with enough memory for a model) and for x64 emulators, not
           # for 32-bit phones, and an APK without them could not run a model.
           # ZT_BUILD puts the build number into the app and its results files.
-          flutter build apk --release --target-platform android-arm64 --build-number="$BUILD" --dart-define=ZT_BUILD="$BUILD"
+          flutter build apk --release --target-platform android-arm64 --build-number="$BUILD" --dart-define=ZT_BUILD="$BUILD" --dart-define=ZT_CHANNEL=direct
           APK="$APP_SLUG-$VERSION-build$BUILD.apk"
           cp build/app/outputs/flutter-apk/app-release.apk "$APK"
           ls -lh "$APK"

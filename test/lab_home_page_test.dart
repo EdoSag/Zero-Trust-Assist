@@ -2,11 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
+import 'package:zerotrust_assist/app/assist_config.dart';
 import 'package:zerotrust_assist/lab/model_catalog.dart';
 import 'package:zerotrust_assist/lab/model_store.dart';
 import 'package:zerotrust_assist/lab/prompts.dart';
 import 'package:zerotrust_assist/lab/result_store.dart';
-import 'package:zerotrust_assist/ui/home_page.dart';
+import 'package:zerotrust_assist/lab/ui/lab_home_page.dart';
 
 /// A store with fixed states, so the page can be shown without downloads.
 class _FixedStore extends ModelStore {
@@ -36,7 +38,10 @@ void main() {
     await tester.runAsync(() async {
       await tester.pumpWidget(
         MaterialApp(
-          home: HomePage(
+          // The suite's real theme, as inside the app: its full-width
+          // buttons break layouts that a plain theme lets through.
+          theme: ZtTheme.light(accent: assistAccent),
+          home: LabHomePage(
             models: store,
             results: ResultStore(Directory('${temp.path}/results')),
           ),

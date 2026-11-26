@@ -3,19 +3,36 @@
 A private AI assistant for the [Zero-Trust apps](https://zerotrust.bz) that
 runs on the phone itself. On the phone it is called **ZT Assist**; in stores
 and on release pages, **Zero-Trust Assist**. The model is an open one (Gemma
-4, Apache 2.0) and answers on the device: nothing you type is sent anywhere,
-and it works with no connection at all. The only network use is downloading
-the model file once.
+4, Apache 2.0) and answers on the device: nothing you type is sent to any AI
+service, and answering works with no connection at all. Chats are saved the
+way notes are in the other apps, encrypted on the phone before they sync.
 
 ZT Assist will be two things: a chat app of its own, and the engine the other
 Zero-Trust apps call for things like summarizing a note, rewriting a selection
 or turning "dentist tomorrow at 9" into an event.
 
-## Where it is now: the phone test
+## Where it is now
 
-This first version is a test bench, not the assistant yet. It answers one
-question before anything is built on top: how well do these models run on a
-real phone, and how good is their Hebrew?
+The chat app is in place: sign in with your Zero-Trust account, pick the small
+or the large model, and chat. The link to the other apps (the engine they
+call) comes next.
+
+- **Model choice.** On first launch the app offers the small model (Gemma 4
+  E2B, 2.6 GB) and the large one (Gemma 4 E4B, 3.7 GB) and marks the one that
+  suits the phone's memory: the large model for 12 GB or more. Switch, download
+  the other or delete one under Settings, Model.
+- **Chat.** Answers appear as they are written and can be stopped. Bold text,
+  lists and code in an answer are shown as such, each line in its own reading
+  direction, so Hebrew and English mix correctly.
+- **History.** Chats are encrypted on the phone and synced to your other
+  devices like notes are. The server stores only sealed data.
+- **Hebrew and English**, from Settings, Appearance, Language.
+
+### The phone test
+
+Under Settings, Phone test, is the test bench this app started as. It answers
+how well the models run on a real phone, and how good their Hebrew is. It is
+in English.
 
 It can:
 
@@ -36,10 +53,11 @@ It can:
 | DictaLM 3.0 1.7B | llama.cpp | 1.1 GB | Hebrew-tuned backup |
 | Gemma 4 E2B (GGUF) | llama.cpp | 3.1 GB | Same model on the other engine, to compare engines |
 
-### Running the test
+#### Running the test
 
-1. Install the APK (from the pull request's build, or from Releases).
-2. Download Gemma 4 E2B on Wi-Fi.
+1. Install the APK (from the pull request's build, or from Releases), sign in
+   and open Settings, Phone test.
+2. Download Gemma 4 E2B on Wi-Fi (already there if it is your chat model).
 3. Unplug the phone, tap **Run test**, pick **Quick** and **CPU**, and keep the
    app open until it finishes.
 4. Tap **Share results file** and send the file.
@@ -54,19 +72,23 @@ and left out of the speeds.
 
 ## Privacy
 
-- The model answers on the device. Nothing you type is sent anywhere, and it
-  works with no connection at all.
-- The only network use is downloading a model file, each pinned by size and
-  SHA-256.
-- The test app has no account and no sign-in. A results file leaves the phone
-  only when you share it.
+- The model answers on the device. What you type to it and what it answers is
+  never sent to any AI service, and answering works with no connection at all.
+- Chats are saved like notes in the other Zero-Trust apps: encrypted on the
+  phone with a key only you hold, then synced to your account. Nobody else,
+  the server included, can read them.
+- The network is used for three things only: signing in, syncing the
+  encrypted chats, and downloading a model file (each pinned by size and
+  SHA-256) from huggingface.co.
+- A phone test's results file leaves the phone only when you share it.
 
 ## Install
 
 Android 11 or newer, 64-bit ARM. There is no release yet: the test APK comes
 from the pull request's build. Once the app is released, signed APKs will be on
 this repository's [Releases](https://github.com/EdoSag/Zero-Trust-Assist/releases)
-page, like the other Zero-Trust apps. The test app is in English.
+page, like the other Zero-Trust apps. The app is made for phones with 8 GB of
+memory or more.
 
 ## How it is built
 
@@ -75,14 +97,29 @@ page, like the other Zero-Trust apps. The test app is in English.
   Today it is [llamadart](https://pub.dev/packages/llamadart) (MIT), which
   wraps llama.cpp and LiteRT-LM and fetches their prebuilt native libraries at
   build time. Its version is pinned exactly.
-- `lib/lab/` is the test: the model list, the requests, the runner and the
-  result files.
-- `lib/ui/` is the three screens.
-- `android/.../MainActivity.kt` reads memory, heat and battery for the test.
+- `lib/chat/` is the chat: conversations (`ZtCollection` items of the
+  `assist` app, kind `chat`), the prompt sent to the model, the one model kept
+  in memory, and the controller that sends a message and saves the answer.
+- `lib/models/` says which models the chat offers and which suits a phone.
+- `lib/app/` is the sign-in gate and settings on the shared
+  [Zero-Trust-Core](https://github.com/EdoSag/Zero-Trust-Core).
+- `lib/ui/` is the screens: model choice, chat, chat list, settings.
+- `lib/lab/` is the phone test: the model list, the requests, the runner, the
+  result files and its own screens.
+- `android/.../MainActivity.kt` reads memory, heat and battery, and keeps the
+  screen on during an answer.
 
 ## Build from source
 
 Flutter 3.47.9, the version CI pins.
+
+The app reads the Supabase URL and publishable key from a `.env` file (not
+committed; CI writes the shared public values):
+
+```
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+```
 
 ```
 flutter pub get
