@@ -72,6 +72,10 @@ class ChatController extends Notifier<ChatState> {
   bool _stopRequested = false;
   bool _sending = false;
 
+  /// A name given to the conversation while its answer was being written.
+  /// The answer is saved under it, not under the name it started with.
+  String? _retitled;
+
   @override
   ChatState build() {
     // A locked app shows nothing, and the model's memory is given back.
@@ -168,6 +172,7 @@ class ChatController extends Notifier<ChatState> {
             );
     final generation = ++_generation;
     _stopRequested = false;
+    _retitled = null;
     state = ChatState(
       conversation: conversation,
       phase: ChatPhase.loadingModel,
@@ -185,15 +190,18 @@ class ChatController extends Notifier<ChatState> {
     ChatProblem? problem;
     String? detail;
     try {
+      var loaded = false;
       try {
-        await assistant.ensureLoaded(path, contextSize: contextTokens);
+        loaded = await assistant.ensureLoaded(path, contextSize: contextTokens);
       } on Object catch (error) {
         problem = ChatProblem.loadFailed;
         detail = error.toString();
       }
-      if (problem == null && generation == _generation) {
+      // Stop pressed while the model was loading means no answer at all,
+      // and a model taken back during the load has nothing to answer with.
+      if (loaded && !_stopRequested && generation == _generation) {
         state = ChatState(
-          conversation: conversation,
+          conversation: _named(conversation),
           phase: ChatPhase.answering,
         );
         try {
@@ -214,7 +222,7 @@ class ChatController extends Notifier<ChatState> {
             if (piece.text.isEmpty) continue;
             answer.write(piece.text);
             state = ChatState(
-              conversation: conversation,
+              conversation: _named(conversation),
               phase: ChatPhase.answering,
               partial: answer.toString(),
             );
@@ -230,6 +238,8 @@ class ChatController extends Notifier<ChatState> {
     // Another conversation is on screen by now: this answer has no place.
     if (generation != _generation) return;
 
+    conversation = _named(conversation);
+    _retitled = null;
     final written = answer.toString().trim();
     if (written.isNotEmpty) {
       conversation = conversation.withMessage(
@@ -251,12 +261,30 @@ class ChatController extends Notifier<ChatState> {
     );
   }
 
-  /// Gives the open conversation the name [title].
+  /// [conversation] under the name it was given while its answer was being
+  /// written, if any.
+  Conversation _named(Conversation conversation) {
+    final title = _retitled;
+    return title == null ? conversation : conversation.renamed(title);
+  }
+
+  /// Gives [conversation] the name [title].
   Future<void> rename(Conversation conversation, String title) async {
     final renamed = conversation.renamed(title);
     if (renamed.title.isEmpty) return;
+    final open = state.conversation?.id == renamed.id;
+    // The answer being written is saved with the conversation it started
+    // from; this makes that save carry the new name.
+    if (open && state.busy) _retitled = renamed.title;
     await ref.read(chatRepositoryProvider).save(renamed);
-    if (state.conversation?.id == renamed.id && !state.busy) {
+    if (state.conversation?.id != renamed.id) return;
+    if (state.busy) {
+      state = ChatState(
+        conversation: state.conversation!.renamed(renamed.title),
+        phase: state.phase,
+        partial: state.partial,
+      );
+    } else {
       state = ChatState(conversation: renamed);
     }
   }

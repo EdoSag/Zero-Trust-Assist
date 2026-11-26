@@ -19,13 +19,22 @@ class Assistant {
   AssistEngine? _engine;
   String? _path;
 
+  /// Rises with every [unload], so a load that was still running when the
+  /// memory was asked back knows not to keep its model.
+  int _unloads = 0;
+
   /// The file of the loaded model, or null.
   String? get loadedPath => _path;
 
   /// Loads the model at [path] unless it is the one already in memory.
-  Future<void> ensureLoaded(String path, {int contextSize = 4096}) async {
-    if (_engine != null && _path == path) return;
+  ///
+  /// False when [unload] was called while the model was loading (the app
+  /// locked, or the phone test asked for the memory): the model is freed
+  /// again, not kept behind the caller's back.
+  Future<bool> ensureLoaded(String path, {int contextSize = 4096}) async {
+    if (_engine != null && _path == path) return true;
     await unload();
+    final unloads = _unloads;
     final engine = createEngine();
     try {
       // The processor: it works on every phone. GrapheneOS gives apps no
@@ -39,8 +48,17 @@ class Assistant {
       }
       rethrow;
     }
+    if (unloads != _unloads) {
+      try {
+        await engine.dispose();
+      } on Object {
+        // Nothing more to free.
+      }
+      return false;
+    }
     _engine = engine;
     _path = path;
+    return true;
   }
 
   /// The answer to [messages], piece by piece. [ensureLoaded] comes first.
@@ -62,6 +80,7 @@ class Assistant {
 
   /// Frees the model's memory.
   Future<void> unload() async {
+    _unloads++;
     final engine = _engine;
     _engine = null;
     _path = null;

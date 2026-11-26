@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zerotrust_assist/app/assist_settings.dart';
@@ -248,6 +250,75 @@ void main() {
       expect(world.repository.conversations, hasLength(2));
     },
   );
+
+  test('Stop while the model loads means no answer is written', () async {
+    final loading = Completer<void>();
+    final c = container(
+      engine: () => FakeEngine(beforeLoad: () => loading.future),
+    );
+    final sent = controllerOf(c).send('Hi');
+    await pumpEventQueue();
+    expect(stateOf(c).phase, ChatPhase.loadingModel);
+    controllerOf(c).stop();
+    loading.complete();
+    await sent;
+
+    expect(stateOf(c).phase, ChatPhase.idle);
+    expect(stateOf(c).problem, isNull);
+    // The question stays; the model was never asked.
+    expect(stateOf(c).messages.single.text, 'Hi');
+    expect(world.engines.single.requests, isEmpty);
+    // The model stays in memory, so the next message is answered at once.
+    await controllerOf(c).send('Again');
+    expect(world.engines, hasLength(1));
+    expect(stateOf(c).messages.last.text, 'Hello there');
+  });
+
+  test('a model taken back while it loads is freed, not kept', () async {
+    final loading = Completer<void>();
+    final c = container(
+      engine: () => FakeEngine(beforeLoad: () => loading.future),
+    );
+    final sent = controllerOf(c).send('Hi');
+    await pumpEventQueue();
+    // What the lock and the phone test do.
+    await c.read(assistantProvider).unload();
+    loading.complete();
+    await sent;
+
+    expect(world.engines.single.disposed, true);
+    expect(world.engines.single.requests, isEmpty);
+    expect(c.read(assistantProvider).loadedPath, isNull);
+    expect(stateOf(c).phase, ChatPhase.idle);
+    expect(stateOf(c).problem, isNull);
+    // The next message loads the model afresh.
+    await controllerOf(c).send('Again');
+    expect(world.engines, hasLength(2));
+    expect(stateOf(c).messages.last.text, 'Hello there');
+  });
+
+  test('a name given while the answer is written is kept', () async {
+    final writing = Completer<void>();
+    final c = container(
+      engine: () => FakeEngine(beforePiece: () => writing.future),
+    );
+    final sent = controllerOf(c).send('Hi');
+    await pumpEventQueue();
+    expect(stateOf(c).phase, ChatPhase.answering);
+    // From the chat list, with the copy the list holds.
+    await controllerOf(
+      c,
+    ).rename(world.repository.conversations.single, 'Greetings');
+    expect(stateOf(c).phase, ChatPhase.answering);
+    expect(stateOf(c).conversation!.title, 'Greetings');
+    writing.complete();
+    await sent;
+
+    expect(stateOf(c).conversation!.title, 'Greetings');
+    final saved = world.repository.conversations.single;
+    expect(saved.title, 'Greetings');
+    expect(saved.messages.map((m) => m.text), ['Hi', 'Hello there']);
+  });
 
   test('renames and deletes a chat', () async {
     final c = container();
