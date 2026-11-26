@@ -39,6 +39,9 @@ class FakeEngine implements AssistEngine {
   final Future<void> Function()? beforeLoad;
 
   final List<List<AssistMessage>> requests = [];
+
+  /// The temperature each request asked for.
+  final List<double> temperatures = [];
   AssistDevice? loadedDevice;
   int? loadedThreads;
   bool disposed = false;
@@ -68,6 +71,7 @@ class FakeEngine implements AssistEngine {
     double temperature = 0,
   }) async* {
     requests.add(messages);
+    temperatures.add(temperature);
     _cancelled = false;
     final pieces = answer(messages);
     for (final piece in pieces) {

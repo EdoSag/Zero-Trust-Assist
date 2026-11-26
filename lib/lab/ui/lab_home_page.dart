@@ -11,6 +11,7 @@ import '../model_store.dart';
 import '../prompts.dart';
 import '../result_store.dart';
 import 'lab_chat_page.dart';
+import 'link_test_page.dart';
 import 'run_page.dart';
 
 /// The test bench: the phone's state, the models to download, and the runs
@@ -225,6 +226,25 @@ class _LabHomePageState extends State<LabHomePage> {
           ),
           const SizedBox(height: 16),
           _DeviceCard(device: _device),
+          const SizedBox(height: 8),
+          Card(
+            child: ListTile(
+              key: const Key('open-link-test'),
+              leading: const Icon(Icons.link),
+              title: const Text('Link for other apps'),
+              subtitle: const Text(
+                'Asks ZT Assist the way the other Zero-Trust apps will, and '
+                'shows how fast it answers.',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (context) =>
+                      LinkTestPage(onActivity: widget.onActivity),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           Text('Models', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),

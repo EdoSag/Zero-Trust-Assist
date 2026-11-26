@@ -9,13 +9,22 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zero_trust_core/zero_trust_core.dart';
 
 import 'app/app_gate.dart';
+import 'app/assist_settings.dart';
 import 'app/assist_config.dart';
 import 'app/incoming_links.dart';
 import 'l10n/l10n.dart';
 import 'lab/model_store.dart';
 import 'lab/result_store.dart';
 import 'models/assist_models.dart';
+import 'service/model_choice.dart';
+import 'service/service_main.dart';
 import 'ui/settings_page.dart';
+
+/// Started by the Android service that answers other Zero-Trust apps, in
+/// place of [main]. It has to be in this file and marked as an entry point:
+/// that is where Android looks for it, and what keeps it in a release build.
+@pragma('vm:entry-point')
+Future<void> assistServiceMain() => runAssistService();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +46,9 @@ Future<void> main() async {
         ztAppConfigProvider.overrideWithValue(assistAppConfig),
         modelStoreProvider.overrideWithValue(
           ModelStore('${support.path}/models'),
+        ),
+        modelChoiceFileProvider.overrideWithValue(
+          ModelChoiceFile.inDirectory('${support.path}/models'),
         ),
         resultStoreProvider.overrideWithValue(
           ResultStore(Directory('${documents.path}/results')),

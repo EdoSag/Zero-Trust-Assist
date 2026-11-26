@@ -193,6 +193,60 @@ void main() {
       expect(small.onPressed, isNotNull);
     });
 
+    testWidgets(
+      'the chat model is freed once the app is off screen for a while',
+      (tester) async {
+        phone(tester);
+        await tester.pumpWidget(
+          app(
+            const AssistHome(unloadWhenHiddenFor: Duration(seconds: 30)),
+            world,
+          ),
+        );
+        await tester.pumpAndSettle();
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(ChatHomePage)),
+        );
+        final assistant = container.read(assistantProvider);
+        await assistant.ensureLoaded(readySmall.path!);
+
+        Future<void> hide() async {
+          for (final state in [
+            AppLifecycleState.inactive,
+            AppLifecycleState.hidden,
+            AppLifecycleState.paused,
+          ]) {
+            tester.binding.handleAppLifecycleStateChanged(state);
+          }
+        }
+
+        Future<void> show() async {
+          for (final state in [
+            AppLifecycleState.hidden,
+            AppLifecycleState.inactive,
+            AppLifecycleState.resumed,
+          ]) {
+            tester.binding.handleAppLifecycleStateChanged(state);
+          }
+        }
+
+        // A short trip to another app and back keeps the model.
+        await hide();
+        await tester.pump(const Duration(seconds: 20));
+        await show();
+        await tester.pump(const Duration(seconds: 60));
+        expect(assistant.loadedPath, readySmall.path);
+
+        // A longer one gives the memory back.
+        await hide();
+        await tester.pump(const Duration(seconds: 31));
+        expect(assistant.loadedPath, isNull);
+        expect(world.engines.single.disposed, true);
+        await show();
+        await tester.pump();
+      },
+    );
+
     testWidgets('a deleted model brings the choice back', (tester) async {
       phone(tester);
       await tester.pumpWidget(app(const AssistHome(), world));

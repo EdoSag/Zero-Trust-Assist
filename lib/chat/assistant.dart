@@ -62,17 +62,24 @@ class Assistant {
   }
 
   /// The answer to [messages], piece by piece. [ensureLoaded] comes first.
+  ///
+  /// [temperature] defaults to a little variety, which reads more naturally
+  /// in a chat. Jobs done for other apps (a summary, a correction) pass 0:
+  /// the same text should give the same result.
   Stream<AssistChunk> answer(
     List<AssistMessage> messages, {
     required int maxTokens,
+    double temperature = 0.7,
   }) {
     final engine = _engine;
     if (engine == null) {
       throw StateError('No model is loaded.');
     }
-    // A little variety reads more naturally in a chat than the fixed answers
-    // the phone test wants.
-    return engine.generate(messages, maxTokens: maxTokens, temperature: 0.7);
+    return engine.generate(
+      messages,
+      maxTokens: maxTokens,
+      temperature: temperature,
+    );
   }
 
   /// Stops the answer being written.

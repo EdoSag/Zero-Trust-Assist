@@ -14,8 +14,8 @@ or turning "dentist tomorrow at 9" into an event.
 ## Where it is now
 
 The chat app is in place: sign in with your Zero-Trust account, pick the small
-or the large model, and chat. The link to the other apps (the engine they
-call) comes next.
+or the large model, and chat. The link to the other apps is in place too:
+ZT Assist can answer them. The first app to use it (Notes) comes next.
 
 - **Model choice.** On first launch the app offers the small model (Gemma 4
   E2B, 2.6 GB) and the large one (Gemma 4 E4B, 3.7 GB) and marks the one that
@@ -27,6 +27,13 @@ call) comes next.
 - **History.** Chats are encrypted on the phone and synced to your other
   devices like notes are. The server stores only sealed data.
 - **Hebrew and English**, from Settings, Appearance, Language.
+- **Answering the other apps.** Another Zero-Trust app on the same phone can
+  hand ZT Assist a text and ask for a summary, a rewrite, a correction, a
+  translation, a title, or an answer to its own question. The text goes from
+  one app to the other on the phone and nowhere else. Only apps signed with
+  the same key as ZT Assist are answered, which is every Zero-Trust app and
+  nothing else. The model the user picked answers; it is loaded when asked
+  and freed about two minutes after the last answer.
 
 ### The phone test
 
@@ -44,7 +51,9 @@ It can:
   starts, memory, heat and battery;
 - check the quick add answers (date and time) automatically;
 - save every run as a JSON file and share it;
-- chat with a model, to judge answers by hand.
+- chat with a model, to judge answers by hand;
+- check the link for other apps: **Link for other apps** asks ZT Assist the
+  way the other apps will, and shows the answer and how fast it was written.
 
 | Model | Engine | Size | Why it is in the test |
 |---|---|---|---|
@@ -81,6 +90,8 @@ and left out of the speeds.
   encrypted chats, and downloading a model file (each pinned by size and
   SHA-256) from huggingface.co.
 - A phone test's results file leaves the phone only when you share it.
+- A text another Zero-Trust app asks about is handed over on the phone, is
+  not saved by ZT Assist, and is not added to your chats.
 
 ## Install
 
@@ -106,6 +117,17 @@ memory or more.
 - `lib/ui/` is the screens: model choice, chat, chat list, settings.
 - `lib/lab/` is the phone test: the model list, the requests, the runner, the
   result files and its own screens.
+- `lib/service/` answers the other apps. `assist_protocol.dart` is what they
+  can ask and the wording the model is given for each job (in Hebrew for
+  Hebrew text); `engine_host.dart` answers the requests one at a time;
+  `service_main.dart` is where it starts.
+- `android/.../AssistService.java` is the Android service the other apps
+  connect to. It runs in a process of its own with no screen, starts the
+  Dart code in `lib/service/` there, and checks the signature of the sender
+  of every message. When the last app lets go, the process ends and the
+  model's memory is given back. The other apps reach it through the
+  `zt_assist` package of Zero-Trust-Core; the message numbers and field
+  names are shared by hand between the two.
 - `android/.../MainActivity.kt` reads memory, heat and battery, and keeps the
   screen on during an answer.
 
