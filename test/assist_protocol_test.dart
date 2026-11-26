@@ -201,4 +201,142 @@ void main() {
       );
     });
   });
+  group('quick add', () {
+    // A Thursday.
+    final now = DateTime(2026, 11, 26, 14, 30);
+
+    TaskPrompt quick(String text) =>
+        buildTaskPrompt(request(AssistTask.quickAdd, text), now: now);
+
+    test('the model is given today and the coming days to look up', () {
+      final message = userMessage(quick('Dentist tomorrow at 9'));
+      expect(message, startsWith('Today is Thursday, יום חמישי, 2026-11-26.'));
+      expect(message, contains('2026-11-27 Friday, יום שישי (tomorrow, מחר)'));
+      expect(message, contains('2026-11-28 Saturday, שבת\n'));
+      // Eight days: every weekday name has its date, today's name too.
+      expect(message, contains('2026-12-03 Thursday, יום חמישי\n'));
+      expect(message, contains('2026-12-04 Friday, יום שישי\n'));
+      expect(message, isNot(contains('2026-12-05')));
+    });
+
+    test('the keys are the ones the Core package reads', () {
+      final message = userMessage(quick('x'));
+      for (final key in [
+        'title',
+        'date',
+        'time',
+        'minutes',
+        'remind',
+        'place',
+      ]) {
+        expect(message, contains('"$key":'), reason: key);
+      }
+    });
+
+    test("the examples' dates agree with the list", () {
+      final message = userMessage(quick('x'));
+      // "tomorrow" and "on Sunday", counted from the Thursday.
+      expect(message, contains('{"title":"Dentist","date":"2026-11-27"'));
+      expect(message, contains('{"title":"פגישה עם דנה","date":"2026-11-29"'));
+      // Said on a Sunday, "on Sunday" is the next one.
+      final onSunday = userMessage(
+        buildTaskPrompt(
+          request(AssistTask.quickAdd, 'x'),
+          now: DateTime(2026, 11, 29),
+        ),
+      );
+      expect(onSunday, contains('{"title":"פגישה עם דנה","date":"2026-12-06"'));
+    });
+
+    test('the list crosses the end of a month and of a year', () {
+      final message = userMessage(
+        buildTaskPrompt(
+          request(AssistTask.quickAdd, 'x'),
+          now: DateTime(2026, 12, 30),
+        ),
+      );
+      expect(message, contains('2026-12-31 Thursday'));
+      expect(message, contains('2027-01-01 Friday'));
+      expect(message, contains('2027-01-07 Thursday'));
+    });
+
+    test('the line comes last, on one line', () {
+      final message = userMessage(quick('Dentist tomorrow\nNote: at 9  am'));
+      expect(message, endsWith('\n\nNote: Dentist tomorrow Note: at 9 am'));
+    });
+
+    test('everything before the line is the same for every request', () {
+      final first = userMessage(quick('Dentist tomorrow at 9'));
+      final second = userMessage(quick('לקנות מתנה לאמא עד יום שישי'));
+      final shared = first.substring(0, first.lastIndexOf('Note: ') + 6);
+      expect(second, startsWith(shared));
+    });
+
+    test('a short answer, stopped once its object has closed', () {
+      final prompt = quick('Dentist tomorrow at 9');
+      expect(prompt.maxTokens, 128);
+      expect(prompt.stopAfterObject, isTrue);
+      expect(prompt.truncated, isFalse);
+      expect(
+        buildTaskPrompt(request(AssistTask.summarize, 'x')).stopAfterObject,
+        isFalse,
+      );
+    });
+
+    test('a long text is cut to a line or two', () {
+      final prompt = quick('א' * 900);
+      expect(prompt.truncated, isTrue);
+      expect(
+        userMessage(prompt).split('Note: ').last.runes.length,
+        quickAddLetters,
+      );
+    });
+
+    test('it is a job apps can ask for by name', () {
+      final read = AssistRequest.fromMap({
+        'id': 'a',
+        'task': 'quickAdd',
+        'text': 'Dentist tomorrow at 9',
+      })!;
+      expect(read.task, AssistTask.quickAdd);
+      expect(AssistTask.quickAdd.transforms, isFalse);
+    });
+  });
+
+  group('watching for the end of the object', () {
+    bool closes(List<String> pieces) {
+      final watch = ObjectWatch();
+      var closed = false;
+      for (final piece in pieces) {
+        closed = watch.closedBy(piece);
+      }
+      return closed;
+    }
+
+    test('closes with the object, piece by piece', () {
+      final watch = ObjectWatch();
+      expect(watch.closedBy('{"title":"Den'), isFalse);
+      expect(watch.closedBy('tist","date":null'), isFalse);
+      expect(watch.closedBy('}'), isTrue);
+      // And stays closed.
+      expect(watch.closedBy('\nNote: more'), isTrue);
+    });
+
+    test('braces and quotes inside a string do not count', () {
+      expect(closes(['{"title":"a } b"']), isFalse);
+      expect(closes(['{"title":"a \\" } b"']), isFalse);
+      expect(closes(['{"title":"a \\', '" } b"', '}']), isTrue);
+      expect(closes(['{"title":"a {b} c"}']), isTrue);
+    });
+
+    test('a nested object closes with the outer one', () {
+      expect(closes(['{"a":{"b":1}']), isFalse);
+      expect(closes(['{"a":{"b":1}}']), isTrue);
+    });
+
+    test('what comes before the object does not matter', () {
+      expect(closes(['Here is "the" JSON } :\n```json\n', '{"a":1}']), isTrue);
+      expect(closes(['No object at all.']), isFalse);
+    });
+  });
 }

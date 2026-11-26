@@ -24,6 +24,10 @@ const int transformLetters = 2400;
 /// The longest answer, in tokens.
 const int taskAnswerTokens = 1280;
 
+/// The longest line quick add reads. A task or an event is typed in a
+/// sentence or two; the rest of a longer text would only slow the answer.
+const int quickAddLetters = 500;
+
 /// A job another app can ask for.
 enum AssistTask {
   summarize,
@@ -33,7 +37,11 @@ enum AssistTask {
   title,
 
   /// The app's own instruction, in [AssistRequest.instruction].
-  ask;
+  ask,
+
+  /// A typed line like "dentist tomorrow at 9" read into a title, a day,
+  /// a time, a length, a reminder and a place. See [quickAddInstruction].
+  quickAdd;
 
   static AssistTask? byName(Object? name) {
     for (final task in values) {
@@ -45,7 +53,7 @@ enum AssistTask {
   /// Whether the answer is about as long as the text.
   bool get transforms => switch (this) {
     rewrite || proofread || translate => true,
-    summarize || title || ask => false,
+    summarize || title || ask || quickAdd => false,
   };
 }
 
@@ -109,10 +117,15 @@ class TaskPrompt {
     required this.messages,
     required this.maxTokens,
     required this.truncated,
+    this.stopAfterObject = false,
   });
 
   final List<AssistMessage> messages;
   final int maxTokens;
+
+  /// The answer is one JSON object: once it has closed, the model is
+  /// stopped, so it does not go on to write a second one.
+  final bool stopAfterObject;
 
   /// Whether the text was longer than the model can take, so only its
   /// beginning was used.
@@ -177,12 +190,136 @@ String taskInstruction(AssistRequest request, {required bool hebrew}) {
                 'text. Return only the title:';
     case AssistTask.ask:
       return request.instruction!.trim();
+    case AssistTask.quickAdd:
+      // In one language, and it needs the day: see [quickAddInstruction].
+      return quickAddInstruction(DateTime.now());
+  }
+}
+
+const _dayNames = [
+  ('Monday', 'יום שני'),
+  ('Tuesday', 'יום שלישי'),
+  ('Wednesday', 'יום רביעי'),
+  ('Thursday', 'יום חמישי'),
+  ('Friday', 'יום שישי'),
+  ('Saturday', 'שבת'),
+  ('Sunday', 'יום ראשון'),
+];
+
+String _isoDay(DateTime day) =>
+    '${day.year.toString().padLeft(4, '0')}-'
+    '${day.month.toString().padLeft(2, '0')}-'
+    '${day.day.toString().padLeft(2, '0')}';
+
+/// What the model is told for [AssistTask.quickAdd], up to the line itself.
+///
+/// The keys are a contract with `ZtAssistQuickAdd` in the Core package
+/// `zt_assist`, which checks the answer: title, date, time, minutes,
+/// remind, place.
+///
+/// A small model is poor at counting days, so the coming days are listed
+/// with their dates and it only has to look one up. The examples fix the
+/// shape of the answer; their dates are worked out from [now], so they
+/// agree with the list. One language for the instruction, as measured on
+/// the phone: the model keeps the title in the line's own language.
+String quickAddInstruction(DateTime now) {
+  final today = DateTime(now.year, now.month, now.day);
+  DateTime plus(int days) =>
+      DateTime(today.year, today.month, today.day + days);
+  String name(DateTime day) => _dayNames[day.weekday - 1].$1;
+  String hebrewName(DateTime day) => _dayNames[day.weekday - 1].$2;
+
+  final days = StringBuffer();
+  for (var i = 1; i <= 8; i++) {
+    final day = plus(i);
+    days.writeln(
+      '${_isoDay(day)} ${name(day)}, ${hebrewName(day)}'
+      '${i == 1 ? ' (tomorrow, מחר)' : ''}',
+    );
+  }
+  // The coming Sunday, never today: "on Sunday" said on a Sunday means
+  // the next one.
+  final sunday = plus(
+    (DateTime.sunday - today.weekday) % 7 == 0
+        ? 7
+        : (DateTime.sunday - today.weekday) % 7,
+  );
+
+  return 'Today is ${name(today)}, ${hebrewName(today)}, ${_isoDay(today)}. '
+      'The coming days:\n'
+      '$days\n'
+      'Read the last note and answer with one line of JSON, with no code '
+      'block and nothing after it. Use exactly these keys:\n'
+      '"title": what to do or what happens. Short, in the note\'s own '
+      'language and words, without the day, the time, the place and the '
+      'reminder.\n'
+      '"date": the day as YYYY-MM-DD, taken from the list above when it is '
+      'there, or null when the note names no day.\n'
+      '"time": the start time as HH:MM in 24-hour time, or null when the '
+      'note names no time.\n'
+      '"minutes": how long it takes, in minutes, or null.\n'
+      '"remind": how many minutes before it to remind, or null.\n'
+      '"place": where it is, in the note\'s own words, or null.\n\n'
+      'Note: Dentist tomorrow at 9, remind me an hour before\n'
+      '{"title":"Dentist","date":"${_isoDay(plus(1))}","time":"09:00",'
+      '"minutes":null,"remind":60,"place":null}\n\n'
+      'Note: פגישה עם דנה ביום ראשון בארבע וחצי אחר הצהריים בקפה נחמה, '
+      'שעה וחצי\n'
+      '{"title":"פגישה עם דנה","date":"${_isoDay(sunday)}","time":"16:30",'
+      '"minutes":90,"remind":null,"place":"קפה נחמה"}\n\n'
+      'Note: לקנות חלב\n'
+      '{"title":"לקנות חלב","date":null,"time":null,"minutes":null,'
+      '"remind":null,"place":null}\n\n'
+      'Note: ';
+}
+
+/// Tells when the first JSON object of an answer has closed, as the
+/// answer arrives piece by piece.
+class ObjectWatch {
+  int _depth = 0;
+  bool _inString = false;
+  bool _escaped = false;
+  bool _closed = false;
+
+  /// Whether the object has closed by the end of [piece].
+  bool closedBy(String piece) {
+    if (_closed) return true;
+    for (final unit in piece.codeUnits) {
+      if (_inString) {
+        if (_escaped) {
+          _escaped = false;
+        } else if (unit == 0x5C) {
+          _escaped = true;
+        } else if (unit == 0x22) {
+          _inString = false;
+        }
+        continue;
+      }
+      if (unit == 0x22) {
+        // Quotes before the object opens are not its strings.
+        if (_depth > 0) _inString = true;
+      } else if (unit == 0x7B) {
+        _depth++;
+      } else if (unit == 0x7D && _depth > 0) {
+        _depth--;
+        if (_depth == 0) {
+          _closed = true;
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
 
 /// The instructions and [request]'s text, cut to what the model can take.
-TaskPrompt buildTaskPrompt(AssistRequest request) {
-  final limit = request.task.transforms ? transformLetters : readLetters;
+/// [now] is the phone's clock; quick add reads "tomorrow" against it.
+TaskPrompt buildTaskPrompt(AssistRequest request, {DateTime? now}) {
+  final limit = switch (request.task) {
+    AssistTask.quickAdd => quickAddLetters,
+    final task when task.transforms => transformLetters,
+    _ => readLetters,
+  };
   final runes = request.text.trim().runes.toList();
   final truncated = runes.length > limit;
   final text = truncated
@@ -195,6 +332,8 @@ TaskPrompt buildTaskPrompt(AssistRequest request) {
     AssistTask.summarize => 384,
     AssistTask.title => 48,
     AssistTask.ask => 512,
+    // A line of JSON with a title of a dozen Hebrew words.
+    AssistTask.quickAdd => 128,
     AssistTask.rewrite || AssistTask.proofread || AssistTask.translate =>
       (text.runes.length ~/ 2 + 64).clamp(128, taskAnswerTokens),
   };
@@ -203,6 +342,25 @@ TaskPrompt buildTaskPrompt(AssistRequest request) {
   final most = request.task == AssistTask.ask ? 1024 : own;
   final asked = request.maxTokens;
   final maxTokens = asked == null ? own : asked.clamp(16, most);
+
+  if (request.task == AssistTask.quickAdd) {
+    // One line: a second "Note:" inside the text would read as a new
+    // example.
+    final line = text.replaceAll(RegExp(r'\s+'), ' ');
+    return TaskPrompt(
+      messages: [
+        const AssistMessage.system(taskSystemPrompt),
+        // The line comes last, so everything before it is the same for
+        // every request of the day and the model reads it once.
+        AssistMessage.user(
+          '${quickAddInstruction(now ?? DateTime.now())}$line',
+        ),
+      ],
+      maxTokens: maxTokens,
+      truncated: truncated,
+      stopAfterObject: true,
+    );
+  }
 
   return TaskPrompt(
     messages: [

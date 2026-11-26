@@ -15,7 +15,9 @@ or turning "dentist tomorrow at 9" into an event.
 
 The chat app is in place: sign in with your Zero-Trust account, pick the small
 or the large model, and chat. The link to the other apps is in place too:
-ZT Assist can answer them. The first app to use it (Notes) comes next.
+ZT Assist can answer them. ZT Notes is the first to use it ("Ask ZT Assist"
+in a note), and quick add in ZT Tasks and ZT Calendar can read a typed line
+through it.
 
 - **Model choice.** On first launch the app offers the small model (Gemma 4
   E2B, 2.6 GB) and the large one (Gemma 4 E4B, 3.7 GB) and marks the one that
@@ -29,7 +31,8 @@ ZT Assist can answer them. The first app to use it (Notes) comes next.
 - **Hebrew and English**, from Settings, Appearance, Language.
 - **Answering the other apps.** Another Zero-Trust app on the same phone can
   hand ZT Assist a text and ask for a summary, a rewrite, a correction, a
-  translation, a title, or an answer to its own question. The text goes from
+  translation, a title, an answer to its own question, or to have a typed
+  line like "dentist tomorrow at 9" read into a title, a day and a time. The text goes from
   one app to the other on the phone and nowhere else. Only apps signed with
   the same key as ZT Assist are answered, which is every Zero-Trust app and
   nothing else. The model the user picked answers; it is loaded when asked
