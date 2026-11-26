@@ -34,7 +34,7 @@ dependencies:
     git:
       url: https://github.com/EdoSag/Zero-Trust-Core.git
       path: packages/zt_assist
-      ref: e098d39e472c2a68d005b856b1f541f2e308f6e5
+      ref: 125bff927e569ba6e914dfbe2a2ada1d00ce42aa
   flutter_riverpod: ^3.5.0
   supabase_flutter: ^2.9.0
   # Reset links from account emails (IncomingLinks).

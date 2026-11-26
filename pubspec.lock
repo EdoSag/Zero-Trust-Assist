@@ -1055,8 +1055,8 @@ packages:
     dependency: "direct main"
     description:
       path: "packages/zt_assist"
-      ref: e098d39e472c2a68d005b856b1f541f2e308f6e5
-      resolved-ref: e098d39e472c2a68d005b856b1f541f2e308f6e5
+      ref: "125bff927e569ba6e914dfbe2a2ada1d00ce42aa"
+      resolved-ref: "125bff927e569ba6e914dfbe2a2ada1d00ce42aa"
       url: "https://github.com/EdoSag/Zero-Trust-Core.git"
     source: git
     version: "0.1.0"
