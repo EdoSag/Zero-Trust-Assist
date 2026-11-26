@@ -153,6 +153,8 @@ class EngineHost {
     }
 
     final prompt = buildTaskPrompt(request);
+    final object = prompt.stopAfterObject ? ObjectWatch() : null;
+    var complete = false;
     final watch = Stopwatch()..start();
     var pieces = 0;
     int? tokens;
@@ -165,10 +167,18 @@ class EngineHost {
       );
       await for (final piece in answer) {
         tokens = piece.usage?.completionTokens ?? tokens;
-        if (piece.text.isEmpty) continue;
+        // The answer was whole already; what the model wrote while it was
+        // being stopped is not part of it.
+        if (piece.text.isEmpty || complete) continue;
         pieces++;
         firstPiece ??= watch.elapsedMilliseconds;
         emit('chunk', {'id': request.id, 'text': piece.text});
+        if (object != null && object.closedBy(piece.text)) {
+          // The one object asked for is there. Stopping here is the end
+          // of the answer, not an answer cut short.
+          complete = true;
+          assistant.cancel();
+        }
       }
     } on Object catch (error) {
       _fail(request.id, AssistFailure.failed, '$error');

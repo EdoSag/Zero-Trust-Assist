@@ -268,4 +268,63 @@ void main() {
     expect(sent.single.$2['stopped'], true);
     expect(engines, hasLength(1));
   });
+  group('quick add', () {
+    Map<String, Object?> quick(String id) => {
+      'id': id,
+      'task': 'quickAdd',
+      'text': 'Dentist tomorrow at 9',
+    };
+
+    test('the model is stopped once the object has closed', () async {
+      final h = host(
+        engine: () => FakeEngine(
+          answer: (_) => const [
+            '{"title":"Dentist",',
+            '"time":"09:00"}',
+            '\n\nNote: Buy milk\n',
+            '{"title":"Buy milk"}',
+          ],
+        ),
+      );
+      h.ask(quick('1:a'));
+      await settle();
+
+      expect(methods(), ['chunk', 'chunk', 'done']);
+      expect(sent[1].$2['text'], '"time":"09:00"}');
+      // The end of the answer, not an answer cut short.
+      expect(sent[2].$2['stopped'], false);
+      expect(sent[2].$2['tokens'], 2);
+      expect(
+        engines.single.requests.single.last.text,
+        endsWith('Note: Dentist tomorrow at 9'),
+      );
+    });
+
+    test('the next request is answered as usual', () async {
+      final h = host(
+        engine: () => FakeEngine(
+          answer: (messages) => messages.last.text.contains('Note: ')
+              ? const ['{"title":"Dentist"}', ' and more']
+              : const ['A', ' summary'],
+        ),
+      );
+      h.ask(quick('1:a'));
+      h.ask(ask('2:a'));
+      await settle();
+
+      expect(methods(), ['chunk', 'done', 'chunk', 'chunk', 'done']);
+      expect(sent[3].$2, {'id': '2:a', 'text': ' summary'});
+      expect(sent[4].$2['stopped'], false);
+    });
+
+    test('an answer with no object runs to its end', () async {
+      final h = host(
+        engine: () => FakeEngine(answer: (_) => const ['I cannot', ' read it']),
+      );
+      h.ask(quick('1:a'));
+      await settle();
+      expect(methods(), ['chunk', 'chunk', 'done']);
+      expect(sent[2].$2['stopped'], false);
+    });
+  });
 }

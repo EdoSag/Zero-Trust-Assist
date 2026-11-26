@@ -51,7 +51,63 @@ void main() {
       ZtAssistTask.summarize,
       ZtAssistTask.proofread,
       ZtAssistTask.rewrite,
+      ZtAssistTask.quickAdd,
+      ZtAssistTask.quickAdd,
+      ZtAssistTask.quickAdd,
     ]);
+  });
+
+  testWidgets('quick add shows what stood up to the checks', (tester) async {
+    final assist = FakeZtAssist(
+      answer: (_) => [
+        '{"title":"רופא שיניים","date":"2020-01-01",',
+        '"time":"09:00","minutes":null,"remind":60,"place":"מרפאה"}',
+      ],
+      done: const ZtAssistDone(tokens: 40),
+    );
+    await pumpPage(tester, assist);
+
+    final choice = find.text('Quick add, Hebrew');
+    await tester.scrollUntilVisible(choice, 200);
+    await tester.ensureVisible(choice);
+    await tester.pump();
+    await tester.tap(choice);
+    await tester.pump();
+    await tapAsk(tester);
+    await tester.pumpAndSettle();
+
+    expect(assist.requests.single.task, ZtAssistTask.quickAdd);
+    final report = tester.widget<SelectableText>(
+      find.byKey(const Key('link-report')),
+    );
+    // The past day and the place the line does not name are dropped.
+    expect(
+      report.data,
+      contains(
+        'Read as: title "רופא שיניים", day -, time 09:00, length -, '
+        'remind 60, place -.',
+      ),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('quick add says when the answer was not usable', (tester) async {
+    final assist = FakeZtAssist(answer: (_) => ['I could not read that.']);
+    await pumpPage(tester, assist);
+
+    final choice = find.text('Quick add, English');
+    await tester.scrollUntilVisible(choice, 200);
+    await tester.ensureVisible(choice);
+    await tester.pump();
+    await tester.tap(choice);
+    await tester.pump();
+    await tapAsk(tester);
+    await tester.pumpAndSettle();
+
+    final report = tester.widget<SelectableText>(
+      find.byKey(const Key('link-report')),
+    );
+    expect(report.data, contains('Read as: nothing'));
   });
 
   testWidgets('says it is ready, asks, and shows the answer and the speed', (
@@ -70,7 +126,10 @@ void main() {
     await pumpPage(tester, assist, onActivity: () => touched++);
 
     expect(find.text('Ready to answer other apps'), findsOneWidget);
-    // The Ask button is on screen, full width, below the choices.
+    // The Ask button is full width, below the choices. The list builds its
+    // rows as they come near the screen.
+    await tester.scrollUntilVisible(find.byKey(const Key('link-ask')), 200);
+    await tester.pump();
     final ask = tester.getRect(find.byKey(const Key('link-ask')));
     final lastChoice = tester.getRect(find.text(linkSamples.last.label));
     expect(ask.top, greaterThan(lastChoice.bottom));

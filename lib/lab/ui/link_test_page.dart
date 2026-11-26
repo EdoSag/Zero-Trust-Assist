@@ -34,10 +34,35 @@ final List<LinkSample> linkSamples = [
           'האפשרי.',
     ),
   ),
-  // The longest answer of the four: the one to read the writing speed from.
+  // The longest answer of them all: the one to read the writing speed from.
   LinkSample(
     'Rewrite, Hebrew (long answer)',
     ZtAssistRequest(task: ZtAssistTask.rewrite, text: labHebrewNote),
+  ),
+  // Quick add, the way ZT Tasks and ZT Calendar ask: the answer is JSON,
+  // and what stood up to the checks is shown under it.
+  const LinkSample(
+    'Quick add, Hebrew',
+    ZtAssistRequest(
+      task: ZtAssistTask.quickAdd,
+      text: 'מחר ב-9 רופא שיניים, להזכיר שעה לפני',
+    ),
+  ),
+  const LinkSample(
+    'Quick add, Hebrew in words',
+    ZtAssistRequest(
+      task: ZtAssistTask.quickAdd,
+      text: 'פגישה עם רואה החשבון ביום ראשון בארבע וחצי אחר הצהריים במשרד שלו',
+    ),
+  ),
+  const LinkSample(
+    'Quick add, English',
+    ZtAssistRequest(
+      task: ZtAssistTask.quickAdd,
+      text:
+          'Call the insurance company on Thursday at 2pm, remind me 15 '
+          'minutes before',
+    ),
   ),
 ];
 
@@ -169,6 +194,27 @@ class _LinkTestPageState extends State<LinkTestPage> {
     return detail == null || detail.isEmpty ? why : '$why\n$detail';
   }
 
+  /// What quick add made of the answer, the way an asking app reads it.
+  String _quickAddReading() {
+    final read = ZtAssistQuickAdd.fromAnswer(
+      _answer,
+      text: linkSamples[_sample].request.text,
+      now: DateTime.now(),
+    );
+    if (read == null) return 'Read as: nothing (the answer was not usable).';
+    String two(int n) => n.toString().padLeft(2, '0');
+    final day = read.day;
+    final parts = [
+      'title "${read.title ?? '-'}"',
+      'day ${day == null ? '-' : '${day.year}-${two(day.month)}-${two(day.day)}'}',
+      'time ${read.hasTime ? '${two(read.hour!)}:${two(read.minute!)}' : '-'}',
+      'length ${read.lengthMinutes ?? '-'}',
+      'remind ${read.remindMinutesBefore ?? '-'}',
+      'place ${read.place ?? '-'}',
+    ];
+    return 'Read as: ${parts.join(', ')}.';
+  }
+
   static String _seconds(Duration time) =>
       '${(time.inMilliseconds / 1000).toStringAsFixed(1)} s';
 
@@ -176,6 +222,8 @@ class _LinkTestPageState extends State<LinkTestPage> {
   String _report(ZtAssistDone done) {
     final speed = done.tokensPerSecond;
     final lines = [
+      if (linkSamples[_sample].request.task == ZtAssistTask.quickAdd)
+        _quickAddReading(),
       '${done.tokens} tokens. The model read for '
           '${_seconds(done.timeToFirstPiece)} and wrote for '
           '${_seconds(done.duration - done.timeToFirstPiece)}'
