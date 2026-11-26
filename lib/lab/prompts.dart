@@ -125,6 +125,16 @@ const String _longHebrewNote = '''
 
 סכם את הפתק בחמש נקודות קצרות.''';
 
+/// The long English note without its closing request, for a test that
+/// brings a request of its own.
+final String labEnglishNote = _withoutLastLine(_longEnglishNote);
+
+/// The long Hebrew note without its closing request.
+final String labHebrewNote = _withoutLastLine(_longHebrewNote);
+
+String _withoutLastLine(String note) =>
+    note.substring(0, note.trimRight().lastIndexOf('\n')).trim();
+
 /// Every request of the test, in the order it runs.
 const List<LabPrompt> labPrompts = [
   // Speed. Long texts, so the reading speed is measured on real input.

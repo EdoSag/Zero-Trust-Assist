@@ -44,6 +44,15 @@
                 <data android:scheme="https" android:host="zerotrust.bz" android:pathPrefix="/auth/assist/"/>
             </intent-filter>
         </activity>
+        <!-- Answers the other Zero-Trust apps (a summary of a note, a
+             correction). Open to bind, but every message is checked: only
+             apps signed with the same key as this one are answered (see
+             AssistService.java). In a process of its own, so the model's
+             memory is given back when the last app lets go. -->
+        <service
+            android:name=".AssistService"
+            android:exported="true"
+            android:process=":engine"/>
         <!-- Lets the engine reach the phone maker's OpenCL driver for GPU
              runs where there is one. Optional: without it the CPU is used. -->
         <uses-native-library android:name="libOpenCL.so" android:required="false"/>

@@ -67,6 +67,11 @@ void main() {
     });
     await pumpHome(tester, store);
 
+    // The way to the test of the link for other apps, above the models.
+    final link = tester.getRect(find.byKey(const Key('open-link-test')));
+    expect(link.width, greaterThan(250));
+    expect(find.text('Link for other apps'), findsOneWidget);
+
     for (final model in labModels) {
       await tester.scrollUntilVisible(find.text(model.title), 200);
       expect(find.text(model.title), findsOneWidget);
@@ -94,6 +99,9 @@ void main() {
     await pumpHome(tester, store);
 
     await tester.scrollUntilVisible(find.text('Run test'), 200);
+    // Built, but possibly still below the edge of the screen.
+    await tester.ensureVisible(find.text('Run test'));
+    await tester.pump();
     await tester.tap(find.text('Run test'));
     await tester.pumpAndSettle();
 
@@ -125,6 +133,8 @@ void main() {
     await pumpHome(tester, _FixedStore(temp.path, const {}));
 
     await tester.scrollUntilVisible(find.text('Download').first, 200);
+    await tester.ensureVisible(find.text('Download').first);
+    await tester.pump();
     await tester.tap(find.text('Download').first);
     await tester.pumpAndSettle();
 
