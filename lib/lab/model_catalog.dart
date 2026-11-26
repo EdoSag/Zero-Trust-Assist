@@ -27,6 +27,7 @@ class LabModel {
     required this.bytes,
     required this.sha256,
     required this.license,
+    this.search = false,
   });
 
   /// Short stable name, used in result files.
@@ -43,6 +44,10 @@ class LabModel {
   final int bytes;
   final String sha256;
   final String license;
+
+  /// A search model: it turns a text into a vector for search by meaning
+  /// and cannot chat.
+  final bool search;
 
   double get gigabytes => bytes / (1000 * 1000 * 1000);
 }
@@ -92,5 +97,20 @@ const List<LabModel> labModels = [
     bytes: 3106738272,
     sha256: '80d155f647d3a896669b1d1605b494b97ee9dbd1dcafd27957394134c280d270',
     license: 'Apache 2.0',
+  ),
+  // Size and hash read from the Hugging Face file listing on 2026-11-26.
+  LabModel(
+    id: 'embeddinggemma-300m-gguf',
+    title: 'EmbeddingGemma 300M (search)',
+    note:
+        'The planned model for search by meaning. It finds notes by what '
+        'they say, not by their exact words. It cannot chat.',
+    runtime: LabRuntime.llamaCpp,
+    repoId: 'ggml-org/embeddinggemma-300M-GGUF',
+    fileName: 'embeddinggemma-300M-Q8_0.gguf',
+    bytes: 333590944,
+    sha256: 'b5ce9d77a3fc4b3b39ccb5643c36777911cc4eb46a66962eadfa3f5f60490d63',
+    license: 'Gemma terms of use',
+    search: true,
   ),
 ];

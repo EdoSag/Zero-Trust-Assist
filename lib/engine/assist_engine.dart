@@ -122,6 +122,11 @@ abstract class AssistEngine {
   /// cannot say.
   Future<int?> countTokens(String text);
 
+  /// One search vector per text of [texts], in order, each of length 1.
+  /// Texts that mean alike get vectors that point alike. Only a search
+  /// model can do this; a chat model throws.
+  Future<List<List<double>>> embed(List<String> texts);
+
   /// Stops the answer being written. The stream then ends normally.
   void cancel();
 

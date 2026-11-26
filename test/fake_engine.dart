@@ -12,6 +12,7 @@ class FakeEngine implements AssistEngine {
     this.onPiece,
     this.beforePiece,
     this.beforeLoad,
+    this.vector,
   });
 
   static List<String> _defaultAnswer(List<AssistMessage> messages) => const [
@@ -37,6 +38,13 @@ class FakeEngine implements AssistEngine {
   /// Waited for before the model counts as loaded, so a test can act while
   /// it is still loading.
   final Future<void> Function()? beforeLoad;
+
+  /// The search vector of a text. Without it [embed] throws, like a chat
+  /// model.
+  final List<double> Function(String text)? vector;
+
+  /// Every text [embed] was given, in order.
+  final List<String> embedded = [];
 
   final List<List<AssistMessage>> requests = [];
 
@@ -89,6 +97,14 @@ class FakeEngine implements AssistEngine {
   @override
   Future<int?> countTokens(String text) async =>
       text.split(RegExp(r'\s+')).where((word) => word.isNotEmpty).length;
+
+  @override
+  Future<List<List<double>>> embed(List<String> texts) async {
+    final make = vector;
+    if (make == null) throw StateError('not a search model');
+    embedded.addAll(texts);
+    return [for (final text in texts) make(text)];
+  }
 
   @override
   void cancel() => _cancelled = true;

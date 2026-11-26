@@ -56,7 +56,12 @@ It can:
 - save every run as a JSON file and share it;
 - chat with a model, to judge answers by hand;
 - check the link for other apps: **Link for other apps** asks ZT Assist the
-  way the other apps will, and shows the answer and how fast it was written.
+  way the other apps will, and shows the answer and how fast it was written;
+- check search by meaning, the next step: **Search test** on the search
+  model reads 24 sample notes in Hebrew and English, makes 24 searches worded
+  differently from the notes (some in the other language), and reports how
+  often the right note came out on top, how long a note takes to read and
+  how long a search takes.
 
 | Model | Engine | Size | Why it is in the test |
 |---|---|---|---|
@@ -64,6 +69,7 @@ It can:
 | Gemma 4 E4B | LiteRT-LM | 3.7 GB | Larger option for phones with 12 GB or more |
 | DictaLM 3.0 1.7B | llama.cpp | 1.1 GB | Hebrew-tuned backup |
 | Gemma 4 E2B (GGUF) | llama.cpp | 3.1 GB | Same model on the other engine, to compare engines |
+| EmbeddingGemma 300M | llama.cpp | 0.3 GB | The planned search model (finds texts by meaning, cannot chat) |
 
 #### Running the test
 
