@@ -282,9 +282,17 @@ class ObjectWatch {
   bool _closed = false;
 
   /// Whether the object has closed by the end of [piece].
-  bool closedBy(String piece) {
-    if (_closed) return true;
-    for (final unit in piece.codeUnits) {
+  bool closedBy(String piece) => closingPartOf(piece) != null;
+
+  /// The part of [piece] up to and with the brace that closes the object,
+  /// or null while the object is still open. A piece can carry more after
+  /// that brace (the start of a second object, a note), which is not part
+  /// of the answer. Empty once the object closed in an earlier piece.
+  String? closingPartOf(String piece) {
+    if (_closed) return '';
+    final units = piece.codeUnits;
+    for (var at = 0; at < units.length; at++) {
+      final unit = units[at];
       if (_inString) {
         if (_escaped) {
           _escaped = false;
@@ -304,11 +312,11 @@ class ObjectWatch {
         _depth--;
         if (_depth == 0) {
           _closed = true;
-          return true;
+          return piece.substring(0, at + 1);
         }
       }
     }
-    return false;
+    return null;
   }
 }
 

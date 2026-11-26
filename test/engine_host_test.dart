@@ -300,6 +300,23 @@ void main() {
       );
     });
 
+    test('a piece that goes past the object is cut at its end', () async {
+      final h = host(
+        engine: () => FakeEngine(
+          answer: (_) => const [
+            '{"title":"Dentist","time":"09:00"}\n\nNote: Buy milk\n{"title":',
+            '"Buy milk"}',
+          ],
+        ),
+      );
+      h.ask(quick('1:a'));
+      await settle();
+
+      expect(methods(), ['chunk', 'done']);
+      expect(sent[0].$2['text'], '{"title":"Dentist","time":"09:00"}');
+      expect(sent[1].$2['stopped'], false);
+    });
+
     test('the next request is answered as usual', () async {
       final h = host(
         engine: () => FakeEngine(
@@ -313,6 +330,7 @@ void main() {
       await settle();
 
       expect(methods(), ['chunk', 'done', 'chunk', 'chunk', 'done']);
+      expect(sent[0].$2, {'id': '1:a', 'text': '{"title":"Dentist"}'});
       expect(sent[3].$2, {'id': '2:a', 'text': ' summary'});
       expect(sent[4].$2['stopped'], false);
     });
