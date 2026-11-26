@@ -322,6 +322,17 @@ void main() {
       expect(watch.closedBy('\nNote: more'), isTrue);
     });
 
+    test('the piece that closes it is cut at the closing brace', () {
+      final watch = ObjectWatch();
+      expect(watch.closingPartOf('{"title":"Den'), isNull);
+      expect(
+        watch.closingPartOf('tist"}\n\nNote: Buy milk\n{"title":"Buy'),
+        'tist"}',
+      );
+      // Nothing after that belongs to the answer.
+      expect(watch.closingPartOf(' milk"}'), '');
+    });
+
     test('braces and quotes inside a string do not count', () {
       expect(closes(['{"title":"a } b"']), isFalse);
       expect(closes(['{"title":"a \\" } b"']), isFalse);

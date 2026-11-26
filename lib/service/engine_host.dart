@@ -172,10 +172,12 @@ class EngineHost {
         if (piece.text.isEmpty || complete) continue;
         pieces++;
         firstPiece ??= watch.elapsedMilliseconds;
-        emit('chunk', {'id': request.id, 'text': piece.text});
-        if (object != null && object.closedBy(piece.text)) {
-          // The one object asked for is there. Stopping here is the end
-          // of the answer, not an answer cut short.
+        // The one object asked for ends inside this piece: what the piece
+        // has after it is left out. Stopping here is the end of the
+        // answer, not an answer cut short.
+        final last = object?.closingPartOf(piece.text);
+        emit('chunk', {'id': request.id, 'text': last ?? piece.text});
+        if (last != null) {
           complete = true;
           assistant.cancel();
         }
