@@ -1,0 +1,97 @@
+{
+  "@@locale": "en",
+  "appName": "ZT Assist",
+  "cancel": "Cancel",
+  "close": "Close",
+  "copy": "Copy",
+  "copied": "Copied",
+  "delete": "Delete",
+  "save": "Save",
+  "settings": "Settings",
+  "chatNew": "New chat",
+  "chatHint": "Ask anything",
+  "chatSend": "Send",
+  "chatStop": "Stop",
+  "chatStopped": "Stopped before the end",
+  "chatLoadingModel": "Loading the model. The first answer takes a few seconds longer.",
+  "chatThinking": "Thinking…",
+  "chatEmptyTitle": "How can I help?",
+  "chatEmptyHint": "Answers are written on this phone, without a server. Nothing you type leaves it.",
+  "chatDisclaimer": "Answers can be wrong. Check anything important.",
+  "chatListEmpty": "Your chats will show here. They are encrypted and synced to your other devices.",
+  "chatUntitled": "Chat",
+  "chatRename": "Rename",
+  "chatDeleteTitle": "Delete this chat?",
+  "chatDeleteBody": "It is deleted from all your devices and cannot be brought back.",
+  "problemModelMissing": "The model is not on this phone. Download it again or pick the other one.",
+  "problemLoadFailed": "The model could not be loaded. Close other apps to free memory and try again.",
+  "problemAnswerFailed": "The answer stopped because of an error. Try again.",
+  "problemSaveFailed": "This chat could not be saved.",
+  "setupTitle": "Choose your model",
+  "setupIntro": "ZT Assist answers on this phone, without a server, so what you write never leaves it. For that it downloads a model once. You can switch later in Settings.",
+  "setupLowMemory": "This phone has {gigabytes} GB of memory. ZT Assist is made for 8 GB or more, so it may be slow or close by itself here.",
+  "@setupLowMemory": {
+    "placeholders": {
+      "gigabytes": {
+        "type": "String"
+      }
+    }
+  },
+  "setupSource": "The models are Gemma 4 by Google, free to use (Apache 2.0 licence). They are downloaded from huggingface.co and checked before use. Use Wi-Fi: the files are large.",
+  "setupStart": "Start chatting",
+  "modelSmall": "Small model",
+  "modelLarge": "Large model",
+  "modelSmallHint": "Faster, and enough for most everyday questions.",
+  "modelLargeHint": "Better answers, but slower. For phones with 12 GB of memory or more.",
+  "modelRecommended": "Suits this phone",
+  "modelDetails": "{name}, {gigabytes} GB",
+  "@modelDetails": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "gigabytes": {
+        "type": "String"
+      }
+    }
+  },
+  "modelDownload": "Download",
+  "modelTryAgain": "Try again",
+  "modelDownloading": "Downloading: {done} of {total} GB",
+  "@modelDownloading": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "modelChecking": "Checking the file…",
+  "modelOnPhone": "On this phone",
+  "modelDownloadFailed": "The download did not finish. It continues where it stopped.",
+  "modelInUse": "The model is in use. Close the phone test first.",
+  "modelNoSpace": "Not enough free space: only {gigabytes} GB is free.",
+  "@modelNoSpace": {
+    "placeholders": {
+      "gigabytes": {
+        "type": "String"
+      }
+    }
+  },
+  "modelDeleteTitle": "Delete this model?",
+  "modelDeleteBody": "This frees {gigabytes} GB. Your chats stay. You can download the model again later.",
+  "@modelDeleteBody": {
+    "placeholders": {
+      "gigabytes": {
+        "type": "String"
+      }
+    }
+  },
+  "modelsIntro": "The model that writes the answers. Tap one that is on this phone to use it.",
+  "settingsModel": "Model",
+  "settingsModelNone": "Not chosen yet",
+  "settingsPhoneTest": "Phone test",
+  "settingsPhoneTestHint": "Measures how fast the models run on this phone. In English."
+}

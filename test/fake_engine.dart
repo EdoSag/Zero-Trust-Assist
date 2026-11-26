@@ -10,6 +10,8 @@ class FakeEngine implements AssistEngine {
     this.perf,
     this.usage,
     this.onPiece,
+    this.beforePiece,
+    this.beforeLoad,
   });
 
   static List<String> _defaultAnswer(List<AssistMessage> messages) => const [
@@ -28,6 +30,14 @@ class FakeEngine implements AssistEngine {
   /// Called after each piece is handed out.
   final void Function(FakeEngine engine)? onPiece;
 
+  /// Waited for before each piece, so a test can look at a half-written
+  /// answer.
+  final Future<void> Function()? beforePiece;
+
+  /// Waited for before the model counts as loaded, so a test can act while
+  /// it is still loading.
+  final Future<void> Function()? beforeLoad;
+
   final List<List<AssistMessage>> requests = [];
   AssistDevice? loadedDevice;
   int? loadedThreads;
@@ -41,6 +51,7 @@ class FakeEngine implements AssistEngine {
     int contextSize = 4096,
     int threads = 0,
   }) async {
+    await beforeLoad?.call();
     final error = loadError;
     if (error != null) throw error;
     loadedDevice = device;
@@ -60,6 +71,7 @@ class FakeEngine implements AssistEngine {
     _cancelled = false;
     final pieces = answer(messages);
     for (final piece in pieces) {
+      await beforePiece?.call();
       if (_cancelled) return;
       yield AssistChunk(piece);
       onPiece?.call(this);

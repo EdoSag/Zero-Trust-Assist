@@ -1,8 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Only used to download a model file. Everything the models read and
-         write stays on the phone, and the app works with this permission
-         switched off once a model is on the device. -->
+    <!-- Used to download a model file, and to sign in and sync the
+         encrypted chats with the shared Zero-Trust account. What is typed
+         to the model and what it answers is never sent anywhere except as
+         part of that encrypted sync. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
 
     <application
         android:supportsRtl="true"
@@ -30,6 +32,17 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Links are handled by the app's own code (app_links, see
+                 IncomingLinks), not Flutter's router: AppGate has no route
+                 for them. -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false"/>
+            <!-- Password-reset emails: https://zerotrust.bz/auth/assist/#token_hash=… -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="zerotrust.bz" android:pathPrefix="/auth/assist/"/>
+            </intent-filter>
         </activity>
         <!-- Lets the engine reach the phone maker's OpenCL driver for GPU
              runs where there is one. Optional: without it the CPU is used. -->
@@ -50,6 +63,11 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Opening the privacy policy, terms and support pages. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

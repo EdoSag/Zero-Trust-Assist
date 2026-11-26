@@ -2,11 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zero_trust_core/zero_trust_core.dart';
+import 'package:zerotrust_assist/app/assist_config.dart';
 import 'package:zerotrust_assist/engine/assist_engine.dart';
 import 'package:zerotrust_assist/lab/model_catalog.dart';
 import 'package:zerotrust_assist/lab/prompts.dart';
 import 'package:zerotrust_assist/lab/result_store.dart';
-import 'package:zerotrust_assist/ui/run_page.dart';
+import 'package:zerotrust_assist/lab/ui/run_page.dart';
 
 import 'fake_engine.dart';
 
@@ -27,15 +29,21 @@ void main() {
 
     final store = ResultStore(Directory('${temp.path}/results'));
     final prompts = labQuickPrompts.take(3).toList();
+    var activity = 0;
     await tester.runAsync(() async {
       await tester.pumpWidget(
         MaterialApp(
+          // The suite's real theme, as inside the app: its full-width
+          // buttons break layouts that a plain theme lets through.
+          theme: ZtTheme.light(accent: assistAccent),
           home: RunPage(
             model: labModels.first,
             modelPath: '/models/test.litertlm',
             device: AssistDevice.cpu,
             prompts: prompts,
             results: store,
+            onActivity: () => activity++,
+            activityEvery: const Duration(milliseconds: 5),
             createEngine: () => FakeEngine(
               answer: (messages) => const ['שלום', ' עולם'],
               perf: const AssistPerf(
@@ -57,6 +65,9 @@ void main() {
     });
 
     expect(find.text('Share results file'), findsOneWidget);
+    // The running test reported itself as use of the app, so the app's
+    // lock timer cannot cut a long test short.
+    expect(activity, greaterThan(0));
     expect(find.text('Copy summary'), findsOneWidget);
     expect(find.textContaining('writes 25 tok/s'), findsOneWidget);
     expect(find.text('Answers'), findsOneWidget);

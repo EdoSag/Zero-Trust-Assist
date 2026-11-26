@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../engine/assist_engine.dart';
-import '../engine/llamadart_engine.dart';
-import '../lab/lab_result.dart';
-import '../lab/lab_runner.dart';
-import '../lab/model_catalog.dart';
-import 'text_direction.dart';
+import '../../engine/assist_engine.dart';
+import '../../engine/llamadart_engine.dart';
+import '../lab_result.dart';
+import '../lab_runner.dart';
+import '../model_catalog.dart';
+import '../../ui/text_direction.dart';
 
 /// Sent as the system message of every chat.
 const String chatSystemPrompt =
@@ -17,8 +17,8 @@ const String chatSystemPrompt =
 
 /// A plain chat with one model, to judge its answers by hand. Nothing is
 /// saved: the conversation is gone when the page closes.
-class ChatPage extends StatefulWidget {
-  const ChatPage({
+class LabChatPage extends StatefulWidget {
+  const LabChatPage({
     super.key,
     required this.model,
     required this.modelPath,
@@ -32,10 +32,10 @@ class ChatPage extends StatefulWidget {
   final AssistEngine Function() createEngine;
 
   @override
-  State<ChatPage> createState() => _ChatPageState();
+  State<LabChatPage> createState() => _LabChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _LabChatPageState extends State<LabChatPage> {
   late final AssistEngine _engine = widget.createEngine();
   final TextEditingController _input = TextEditingController();
   final ScrollController _scroll = ScrollController();
