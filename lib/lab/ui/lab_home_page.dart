@@ -13,6 +13,7 @@ import '../result_store.dart';
 import 'lab_chat_page.dart';
 import 'link_test_page.dart';
 import 'run_page.dart';
+import 'search_test_page.dart';
 
 /// The test bench: the phone's state, the models to download, and the runs
 /// already made.
@@ -88,6 +89,20 @@ class _LabHomePageState extends State<LabHomePage> {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => LabChatPage(model: model, modelPath: path),
+      ),
+    );
+    await _reload();
+  }
+
+  Future<void> _openSearchTest(LabModel model, String path) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => SearchTestPage(
+          model: model,
+          modelPath: path,
+          deviceInfo: widget.deviceInfo,
+          onActivity: widget.onActivity,
+        ),
       ),
     );
     await _reload();
@@ -261,6 +276,7 @@ class _LabHomePageState extends State<LabHomePage> {
                     onDelete: () => _confirmDelete(model),
                     onRun: (path) => _startRun(model, path),
                     onChat: (path) => _openChat(model, path),
+                    onSearchTest: (path) => _openSearchTest(model, path),
                   ),
               ],
             ),
@@ -491,6 +507,7 @@ class _ModelCard extends StatelessWidget {
     required this.onDelete,
     required this.onRun,
     required this.onChat,
+    required this.onSearchTest,
   });
 
   final LabModel model;
@@ -500,6 +517,7 @@ class _ModelCard extends StatelessWidget {
   final VoidCallback onDelete;
   final void Function(String path) onRun;
   final void Function(String path) onChat;
+  final void Function(String path) onSearchTest;
 
   @override
   Widget build(BuildContext context) {
@@ -576,16 +594,25 @@ class _ModelCard extends StatelessWidget {
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  FilledButton.icon(
-                    onPressed: path == null ? null : () => onRun(path),
-                    icon: const Icon(Icons.speed),
-                    label: const Text('Run test'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: path == null ? null : () => onChat(path),
-                    icon: const Icon(Icons.chat_bubble_outline),
-                    label: const Text('Chat'),
-                  ),
+                  // A search model cannot chat, so it has a test of its own.
+                  if (model.search)
+                    FilledButton.icon(
+                      onPressed: path == null ? null : () => onSearchTest(path),
+                      icon: const Icon(Icons.manage_search),
+                      label: const Text('Search test'),
+                    )
+                  else ...[
+                    FilledButton.icon(
+                      onPressed: path == null ? null : () => onRun(path),
+                      icon: const Icon(Icons.speed),
+                      label: const Text('Run test'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: path == null ? null : () => onChat(path),
+                      icon: const Icon(Icons.chat_bubble_outline),
+                      label: const Text('Chat'),
+                    ),
+                  ],
                   IconButton(
                     tooltip: 'Delete the model file',
                     onPressed: onDelete,

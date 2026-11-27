@@ -84,11 +84,38 @@ void main() {
     expect(find.text('1.5 GB of 3.7 GB'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Try again'), 200);
     expect(find.text('No connection.'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Download'), 200);
+    await tester.scrollUntilVisible(find.text('Download').first, 200);
     await tester.scrollUntilVisible(
       find.text('No runs yet. Download a model and tap Run test.'),
       200,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the search model has a search test, not a chat', (tester) async {
+    final search = labModels.firstWhere((m) => m.search);
+    final store = _FixedStore(temp.path, {
+      search.id: const ModelState(ModelStage.ready, path: '/m/search'),
+    });
+    await pumpHome(tester, store);
+
+    await tester.scrollUntilVisible(find.text('Search test'), 200);
+    await tester.ensureVisible(find.text('Search test'));
+    await tester.pump();
+    // No other model is ready, so these could only be the search model's.
+    expect(find.text('Run test'), findsNothing);
+    expect(find.text('Chat'), findsNothing);
+    // The button and the delete icon share a line inside the card.
+    final card = tester.getRect(
+      find.ancestor(of: find.text('Search test'), matching: find.byType(Card)),
+    );
+    final button = tester.getRect(
+      find.widgetWithText(FilledButton, 'Search test'),
+    );
+    final delete = tester.getRect(find.byTooltip('Delete the model file'));
+    expect(button.left, greaterThanOrEqualTo(card.left));
+    expect(delete.right, lessThanOrEqualTo(card.right));
+    expect(button.height, greaterThan(30));
     expect(tester.takeException(), isNull);
   });
 

@@ -116,6 +116,10 @@ class LlamadartEngine implements AssistEngine {
   }
 
   @override
+  Future<List<List<double>>> embed(List<String> texts) =>
+      _engine.embedBatch(texts);
+
+  @override
   void cancel() => _engine.cancelGeneration();
 
   @override
